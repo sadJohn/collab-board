@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Generated code
+packages/db/src/generated/
+
+# Logs & OS
+*.log
+.DS_Store
+
+# Agent tooling (local only)
+.agents/
+skills-lock.json
