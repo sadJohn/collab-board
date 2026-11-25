@@ -1,9 +1,10 @@
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { config } from "dotenv";
 import { defineConfig, env } from "prisma/config";
 
-// All apps share the single `.env` file at the repository root.
-config({ path: fileURLToPath(new URL("../../.env", import.meta.url)) });
+// The Prisma CLI always runs from `packages/db` (see package.json scripts) and
+// all apps share the single `.env` file at the repository root.
+config({ path: resolve(process.cwd(), "../../.env") });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -16,3 +17,4 @@ export default defineConfig({
     url: env("DIRECT_URL"),
   },
 });
+
