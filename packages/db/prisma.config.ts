@@ -13,8 +13,7 @@ export default defineConfig({
   },
   datasource: {
     // The Prisma CLI (migrate / db push / studio) talks to Neon directly,
-    // bypassing PgBouncer. The app itself uses DATABASE_URL via the adapter.
-    url: env("DIRECT_URL"),
+    // bypassing PgBouncer. The app itself uses DATABASE_URL_POOLED via the adapter.
+    url: env("DATABASE_URL"),
   },
 });
-

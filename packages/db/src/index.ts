@@ -1,10 +1,10 @@
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "./generated/prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL_POOLED;
 
 if (!connectionString) {
-  throw new Error("缺少 DATABASE_URL 环境变量（Neon 连接池字符串），请检查根目录 .env");
+  throw new Error("缺少 DATABASE_URL_POOLED 环境变量（Neon 连接池字符串），请检查根目录 .env");
 }
 
 // Prisma 7 requires an explicit driver adapter; Neon's driver handles pooling.

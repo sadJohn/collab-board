@@ -1,8 +1,8 @@
 // Prisma schema for the Collab Board application (Prisma 7).
 //
 // Connections are no longer declared here:
-//   - Prisma CLI (migrate / db push / studio) -> `prisma.config.ts` (DIRECT_URL)
-//   - Runtime PrismaClient -> `@prisma/adapter-neon` with DATABASE_URL (pooled)
+//   - Prisma CLI (migrate / db push / studio) -> `prisma.config.ts` (DATABASE_URL)
+//   - Runtime PrismaClient -> `@prisma/adapter-neon` with DATABASE_URL_POOLED
 
 generator client {
   provider               = "prisma-client"
@@ -145,6 +145,7 @@ model Invitation {
   status         String   @default("pending")
   expiresAt      DateTime
   inviterId      String
+  createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter      User         @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)

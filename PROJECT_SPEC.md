@@ -76,8 +76,8 @@ collab-board/
 由于 Prisma 7 移除了 `schema.prisma` 中的 `url` 与 `directUrl` 属性，Agent 需按以下核心步骤配置 Neon 连接：
 
 1. **`schema.prisma`**（仅保留 provider，不写 URL）：配置 `postgresql` 提供者与客户端生成路径。
-2. **`prisma.config.ts`**（供 CLI 使用直连 `DIRECT_URL`）：引入 `dotenv/config` 并通过 `defineConfig` 指定迁移直连地址 `env("DIRECT_URL")` [12.1.1, 12.1.6]。
-3. **运行时连接池**：在应用初始化时，通过 `@prisma/adapter-neon` 的 `PrismaNeon` 传入 `DATABASE_URL` 实例化 `PrismaClient` [12.3.1, 12.1.6]。
+2. **`prisma.config.ts`**（供 CLI 使用直连 `DATABASE_URL`）：引入 `dotenv/config` 并通过 `defineConfig` 指定迁移直连地址 `env("DATABASE_URL")` [12.1.1, 12.1.6]。
+3. **运行时连接池**：在应用初始化时，通过 `@prisma/adapter-neon` 的 `PrismaNeon` 传入 `DATABASE_URL_POOLED` 实例化 `PrismaClient` [12.3.1, 12.1.6]。
 
 ### 核心数据模型 (`packages/db/prisma/schema.prisma`)
 
@@ -150,7 +150,7 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
 请采用渐进式开发方式。**严禁一次性生成所有代码。** 必须严格按以下阶段推进，每完成一个阶段并验证通过后，再进入下一阶段：
 
 - **第一阶段（Phase 1）：Monorepo 骨架与共享包初始化**
-  - 初始化 `pnpm` 工作区、`turbo.json`、基础 `tsconfig.json`、根目录 `biome.json` 以及 `.env.example`（包含 `DATABASE_URL`、`DIRECT_URL`、`BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`）。
+  - 初始化 `pnpm` 工作区、`turbo.json`、基础 `tsconfig.json`、根目录 `biome.json` 以及 `.env.example`（包含 `DATABASE_URL`、`DATABASE_URL_POOLED`、`BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`）。
   - 配置 `packages/db`，编写针对 Neon PostgreSQL 的 Prisma Schema 并导出单例 `PrismaClient`。
   - 配置 `packages/shared`，编写 Task、Project、Comment 和 Socket 事件的共享 Zod Schemas 及 TypeScript 类型，并配置 Vitest 单元测试。
 - **第二阶段（Phase 2）：NestJS 后端与 BetterAuth 集成**
