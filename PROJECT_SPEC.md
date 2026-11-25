@@ -157,6 +157,25 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
   - 初始化 `apps/server`（NestJS），并将默认测试框架替换为 `Vitest`。
   - 集成 `better-auth`（Prisma 适配器 + Organization 插件），生成认证相关数据表并推送到 Neon 数据库（执行 `prisma db push`）。
   - 实现 `AuthGuard` 守卫，以及 Projects、Tasks（含分数排序逻辑及 Vitest 单元测试）和 Comments 的基础 CRUD 接口。
+  - **子任务拆解（2.1 – 2.14）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **2A 服务端骨架**
+      - **2.1 初始化 NestJS 应用**：新建 `apps/server` 的 `package.json`、`tsconfig.json`、`nest-cli.json`、`src/main.ts`、`src/app.module.ts`；依赖 `@repo/db`、`@repo/shared`（`workspace:*`）及 `@nestjs/common|core|config`。验收：`pnpm --filter @repo/server dev` 可启动，`GET /health` 返回 200。
+      - **2.2 替换 Jest 为 Vitest**：移除 Jest 相关依赖，安装 `vitest` + `@swc/core` + `unplugin-swc`；`vitest.config.ts` 必须开启 `decoratorMetadata: true`（否则 Nest DI 测试失败）。验收：一个控制器冒烟测试通过。
+      - **2.3 环境变量与入口配置**：`main.ts` 加载根目录 `.env`，端口读 `SERVER_PORT`，CORS 读 `CORS_ORIGIN`。验收：启动日志打印正确端口，跨域预检通过。
+    - **2B BetterAuth 集成**
+      - **2.4 创建 BetterAuth 实例**：`src/auth/auth.ts` 使用 `prismaAdapter(prisma, { provider: "postgresql" })`，启用 `emailAndPassword`、GitHub/Google OAuth、`organization()` 插件，`basePath: "/api/auth"`，`baseURL` 与 `trustedOrigins` 读环境变量。验收：`tsc --noEmit` 通过且无 `any`。
+      - **2.5 挂载认证路由（关键）**：以 `bodyParser: false` 创建应用，先 `app.use("/api/auth", toNodeHandler(auth))`，再对剩余路径应用 `express.json()` / `urlencoded`，避免破坏 BetterAuth 对原始请求体的解析。验收：`GET /api/auth/ok` 正常，`POST /api/auth/sign-up/email` 可注册。
+      - **2.6 推送认证表到 Neon**：执行 `pnpm db:push`。验收：数据库中可见 `user`、`session`、`account`、`verification`、`organization`、`member`、`invitation` 表。
+      - **2.7 AuthGuard 与参数装饰器**：通过 `auth.api.getSession({ headers: fromNodeHeaders(req.headers) })` 校验会话，未登录抛 401；提供 `@CurrentUser()`、`@CurrentSession()`。验收：无 Cookie 访问受保护接口返回 401，携带有效会话返回 200。
+      - **2.8 OrganizationGuard**：校验 `activeOrganizationId` 且当前用户存在于 `member` 表中。验收：非成员访问工作区资源返回 403。
+      - **2.9 AuthGuard 单元测试**：Mock `auth.api.getSession`，覆盖缺少请求头、会话无效、会话有效三种情况。验收：测试通过。
+    - **2C 业务模块**
+      - **2.10 公共基础设施**：`PrismaModule` 提供 `@repo/db` 单例；`ZodValidationPipe` 复用 `@repo/shared` 的 Schema，将 `ZodError` 映射为 400 并返回字段级 message。验收：非法请求体返回 400。
+      - **2.11 Projects 模块**：按 `organizationId` 隔离的 list/get/create/update/delete，复用 `createProjectSchema` / `updateProjectSchema`，`@@unique([organizationId, key])` 冲突映射为 409。验收：单元测试（Mock Prisma）覆盖 key 冲突与跨组织越权。
+      - **2.12 分数排序工具（纯函数）**：`computePosition` 覆盖空列（`INITIAL_TASK_POSITION`）、仅有前一项（`prev + STEP`）、仅有后一项（`next - STEP`）、前后均有（取中值）、间距过小需触发 rebalance 兜底五种情况。验收：Vitest 逐条用例通过。
+      - **2.13 Tasks 模块**：create（置于目标状态列末尾）、list（基于 `taskQuerySchema` 过滤/排序/分页）、update、move（事务内校验任务同属一个项目后计算 position）、delete。验收：`TasksService` 单测覆盖 create/move/delete 及跨项目越权拒绝。
+      - **2.14 Comments 模块与收尾自检**：create/list/delete（仅作者或管理员可删除），接入 `AppModule` 后运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`。验收：三条命令全绿且零 Biome 报错。
+  - **阶段二完成标准**：Neon 认证表齐全；`/api/auth/*` 可用；受保护接口 401/403 行为正确；`pnpm test` 全部通过。
 - **第三阶段（Phase 3）：前端基础架构与认证界面**
   - 初始化 `apps/web`（Vite + React + Tailwind CSS + shadcn/ui）。
   - 配置 `TanStack Router`（文件路由）和 `TanStack Query`。

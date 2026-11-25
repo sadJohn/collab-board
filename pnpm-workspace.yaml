@@ -24,3 +24,7 @@ minimumReleaseAgeExclude:
   - "@vitest/mocker@5.1.2"
   - "@vitest/spy@5.1.2"
   - vitest@5.1.2
+  - "@nestjs/common@12.6.2"
+  - "@nestjs/core@12.6.2"
+  - "@nestjs/platform-express@12.6.2"
+  - "@nestjs/platform-node@12.6.1"
