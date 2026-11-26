@@ -1,5 +1,5 @@
 import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "./generated/prisma/client";
+import { PrismaClient } from "./generated/prisma/client.js";
 
 const connectionString = process.env.DATABASE_URL_POOLED;
 
@@ -40,5 +40,5 @@ export {
   type Task,
   type User,
   type Verification,
-} from "./generated/prisma/client";
-export { TaskPriority, TaskStatus } from "./generated/prisma/enums";
+} from "./generated/prisma/client.js";
+export { TaskPriority, TaskStatus } from "./generated/prisma/enums.js";
