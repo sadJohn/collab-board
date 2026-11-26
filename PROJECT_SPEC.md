@@ -207,6 +207,37 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
   - 开发项目列表视图（集成 `TanStack Table` 与 URL Search Params 同步）。
   - 开发项目看板视图（集成拖拽排序、`Motion` 动画以及 `TanStack Query` 乐观更新）。
   - 开发任务详情抽屉（集成 `React Hook Form` 表单校验）。
+  - **技术决策与前置约定**
+    - **DTO 层**：Web 不得依赖 `@repo/db`（Prisma Client 会进入浏览器包），且接口日期为 JSON 字符串。在 `@repo/shared` 新增 `ProjectDto`、`TaskDto`、`TaskPageDto`、`CommentDto` 的 Zod Schema，类型由 `z.infer` 推导，前端 API 层在边界 `parse`。
+    - **位置算法**：`computePosition` 上移到 `@repo/shared`（纯函数，含精度阈值保护与重排信号），服务端改为引用同一实现，前端看板乐观更新复用，避免两套中值逻辑。
+    - **拖拽引擎与动画隔离**：`@dnd-kit/core` + `@dnd-kit/sortable`（纯 Pointer 事件与无障碍能力）搭配 `DragOverlay`；外层容器绑定 `dnd-kit` 的 `transform`，内层 `motion.div` 仅在非拖拽态且非落位冷却期负责卡片 `layout="position"` 过渡与抽屉动画，避免双动画引擎打架导致抖动与闪烁。
+    - **任务详情取数与缓存联动**：服务端新增 `GET /tasks/:id`（组织隔离），抽屉不依赖列表分页缓存；抽屉更新任务后需同步局部更新或失效列表/看板缓存，保持视图一致性。
+    - **看板数据与新建顺序**：以 `pageSize = MAX_PAGE_SIZE(100)` 一次取全量后前端分组；超出时顶部显眼提示「仅显示前 100 条」，后续再做分列接口；新建任务默认置于列首（最小 `position` 之前），确保高优/新任务在截断边界下依然立即可见。
+    - **新增依赖**：`@tanstack/react-table`、`@dnd-kit/core`、`@dnd-kit/sortable`、`@dnd-kit/modifiers`、`motion`、`@radix-ui/react-dialog`、`@radix-ui/react-select`、`@radix-ui/react-checkbox`、`@radix-ui/react-dropdown-menu`（如已统一使用 `radix-ui` 聚合包则直接复用）。
+  - **路由结构**
+    ```text
+    _app/projects/index.tsx                 /projects                    项目列表 + 新建项目
+    _app/projects/projectId/route.tsx /projects/projectId         项目布局（头部、Board/List Tab、任务抽屉）
+    _app/projects/\$projectId/index.tsx      → 重定向到 board
+    _app/projects/projectId/board.tsx /projects/projectId/board   看板视图
+    _app/projects/projectId/list.tsx /projects/projectId/list    列表视图
+    ```
+  - **子任务拆解（4.1 – 4.8）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **4A 共享基础设施**
+      - **4.1 DTO、位置算法与 API 层**：`packages/shared` 新增 `dto.ts`（4 个 DTO Schema）与 `position.ts`（迁移 `computePosition` 并补充浮点数精度耗尽检测/重排标识）；`apps/server` 改为引用共享实现（精度不足时触发重排），原测试同步调整。`apps/web/src/lib/api/{projects,tasks,comments,members}.ts` 封装列表（q/statuses/priorities/sortBy/sortOrder/page/pageSize）、详情、创建、更新、move、删除及组织成员扁平化映射；`query-keys` 增加任务筛选维度（`statuses` 排序归一化）与成员列表 key（设置长 `staleTime`）。验收：shared 新增 DTO/position 单测通过；server 既有测试全绿；web `typecheck` 通过。
+    - **4B UI 状态与项目入口**
+      - **4.2 Zustand UI 状态**：`ui-store` 增加 `sidebarCollapsed`（持久化）、`activeTaskId`（开关抽屉）、`commandPaletteOpen`（快捷键需避让拖拽中与表单输入焦点，Esc 优先关闭顶层交互）；侧边栏折叠接入布局。验收：store 单测（初始值、setter、持久化）通过，侧边栏可折叠且刷新保持。
+      - **4.3 项目列表页**：`/projects` 展示项目卡片（名称/key/描述），新建项目弹窗使用 `createProjectSchema`，`409` 映射为「项目标识已存在」，空态引导创建。验收：创建后列表即时刷新；单测覆盖提交与 409 错误映射。
+      - **4.4 项目布局**：项目详情查询（404 提示 + 返回入口），头部展示 key/名称，Board/List Tab 使用类型安全 `Link`，挂载任务抽屉容器（切换 `projectId` 或离开路由时自动清空 `activeTaskId` 防止跨项目残留）。验收：子路由直达、刷新、Tab 切换及路由切换清理均正常。
+    - **4C 列表视图**
+      - **4.5 任务列表（TanStack Table + URL 同步）**：`validateSearch` 定义 `q`、`statuses`（写入 URL 前字典序排序稳定缓存命中）、`sortBy`（priority/dueDate/updatedAt）、`sortOrder`、`page`、`pageSize`；搜索防抖或筛选变更写回 URL 时同步将 `page` 重置为 `1`，服务端排序/过滤/分页；列为标题、状态、优先级、指派人、截止日期、更新时间；行多选支持批量删除与批量改状态（使用 `Promise.allSettled` 调接口，`onSettled` invalidate，精准统计并提示「成功 N 条，失败 M 条」）。验收：URL 与表格双向同步、直接访问 URL 可还原状态、筛选变更页码归 1；单测覆盖 search schema 与批量结果统计。
+    - **4D 看板与任务详情**
+      - **4.6 看板视图**：按 `TASK_STATUSES` 渲染 5 列，支持同列排序与跨列移动（空列可放置）；拖放结束计算 `previousTaskId`/`nextTaskId` 调用 `POST /tasks/:id/move`；`onMutate` 取消查询 → 快照 → 用共享 `computePosition` 更新缓存中的 `status/position`，`onError` 回滚，`onSettled` invalidate（兜底后端重排结果）；列头「＋」快速创建任务（`createTaskSchema`，默认插入列首）。验收：乐观更新纯函数单测（跨列/列首/列尾/精度阈值/回滚快照）通过；浏览器拖拽后刷新顺序保持且无闪烁抖动。
+      - **4.7 任务详情抽屉**：服务端新增 `GET /tasks/:id`（`TasksService.findOne` + 组织隔离 + 单测）；抽屉由 `activeTaskId` 控制，使用 RHF + `updateTaskSchema` 编辑标题/描述/状态/优先级/指派人/截止日期，保存走乐观更新与回滚，并同步更新或失效后台列表/看板对应缓存；指派人选项复用 `4.1` 封装的扁平化组织成员列表；底部评论区支持列表、发布、删除（作者或管理员）。验收：新增接口单测通过；抽屉编辑（含关闭后背后列表/看板即时同步）与评论在浏览器实测生效。
+    - **4E 收尾**
+      - **4.8 收尾自检**：补齐中英文案（看板列名、截断提示、表头、抽屉、评论、批量操作成败统计提示），补齐单测（ui-store、search schema、乐观更新、指派人映射、批量结果处理），依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错；端到端流程「创建项目 → 看板建任务 → 跨列拖拽 → 列表筛选/排序（校验 URL 与页码重置）→ 批量改状态 → 抽屉编辑（校验看板同步）+ 评论」通过。
+  - **阶段四完成标准**：项目可创建并进入 Board/List 两种视图；看板拖拽持久化、无动画冲突且失败可回滚；列表筛选/排序与 URL 双向同步、批量操作成败可感知；任务抽屉可编辑并实时同步外层视图与评论；全部测试与构建命令通过。
+
 - **第五阶段（Phase 5）：WebSocket 实时协作**
   - 实现 NestJS WebSocket Gateway（`Socket.io`）及项目房间管理逻辑。
   - 在 `apps/web` 中接入 `socket.io-client`，监听房间广播并实时更新 `TanStack Query` 缓存。
