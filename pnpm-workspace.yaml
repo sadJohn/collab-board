@@ -30,3 +30,5 @@ minimumReleaseAgeExclude:
   - "@nestjs/platform-express@12.6.2"
   - "@nestjs/platform-node@12.6.1"
   - "@nestjs/testing@12.6.2"
+  - "@types/react@19.3.3"
+  - lucide-react@1.80.0

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@repo/ui/styles.css";
+
+/* Shared components live outside this app; Tailwind must scan them explicitly. */
+@source "../../../packages/ui/src";
