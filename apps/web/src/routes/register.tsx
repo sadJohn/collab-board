@@ -2,8 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { RegisterForm } from "../components/auth/register-form";
+import { redirectIfAuthenticated } from "../lib/route-guards";
 
 export const Route = createFileRoute("/register")({
+  beforeLoad: ({ context }) => redirectIfAuthenticated(context.queryClient),
   component: RegisterPage,
 });
 
