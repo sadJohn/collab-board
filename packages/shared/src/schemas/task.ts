@@ -81,10 +81,32 @@ export type TaskSortField = z.infer<typeof taskSortFieldSchema>;
 export const sortOrderSchema = z.enum(["asc", "desc"]);
 export type SortOrder = z.infer<typeof sortOrderSchema>;
 
+/**
+ * Nest parses a single query value into a string and repeated keys into an
+ * array, so accept both forms (plus comma lists) for every multi-value filter.
+ */
+function queryEnumList<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (typeof value === "string") {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    return value;
+  }, z.array(schema).optional());
+}
+
 export const taskQuerySchema = z.object({
   q: z.string().trim().max(SEARCH_QUERY_MAX_LENGTH).optional(),
-  statuses: z.array(taskStatusSchema).optional(),
-  priorities: z.array(taskPrioritySchema).optional(),
+  statuses: queryEnumList(taskStatusSchema),
+  priorities: queryEnumList(taskPrioritySchema),
   sortBy: taskSortFieldSchema.default(DEFAULT_TASK_SORT_FIELD),
   sortOrder: sortOrderSchema.default(DEFAULT_SORT_ORDER),
   page: z.coerce.number().int().min(1).default(DEFAULT_PAGE),

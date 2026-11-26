@@ -8,6 +8,7 @@ import { getProject } from "../../../../lib/api/projects";
 import { ApiError } from "../../../../lib/api-client";
 import { useActiveOrganization } from "../../../../lib/auth-client";
 import { queryKeys } from "../../../../lib/query-keys";
+import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
 import { useUiStore } from "../../../../stores/ui-store";
 
 export const Route = createFileRoute("/_app/projects/$projectId")({
@@ -116,6 +117,7 @@ function ProjectLayout() {
           activeProps={{ className: ACTIVE_TAB_CLASS }}
           className={TAB_CLASS}
           params={{ projectId }}
+          search={DEFAULT_TASK_LIST_SEARCH}
           to="/projects/$projectId/list"
         >
           {t("projects.listTab")}

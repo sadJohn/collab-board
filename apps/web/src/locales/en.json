@@ -17,6 +17,12 @@
     "DONE": "Done",
     "CANCELED": "Canceled"
   },
+  "taskPriority": {
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "URGENT": "Urgent"
+  },
   "language": {
     "label": "Language",
     "zhCN": "中文",
@@ -67,7 +73,33 @@
     "boardTab": "Board",
     "listTab": "List",
     "boardPlaceholder": "The board view is coming next.",
-    "listPlaceholder": "The list view is coming next.",
+    "list": {
+      "loading": "Loading tasks…",
+      "searchPlaceholder": "Search task titles…",
+      "filterStatus": "Filter by status",
+      "selectAll": "Select all rows on this page",
+      "selectRow": "Select task",
+      "unassigned": "Unassigned",
+      "empty": "No tasks yet",
+      "emptyFiltered": "No tasks match these filters",
+      "selected": "{{count}} tasks selected",
+      "batchStatusLabel": "Change status",
+      "batchApply": "Apply",
+      "batchDelete": "Delete selected",
+      "batchResult": "{{succeeded}} succeeded, {{failed}} failed",
+      "total": "{{total}} tasks",
+      "page": "Page {{page}} of {{pages}}",
+      "prev": "Previous",
+      "next": "Next",
+      "columns": {
+        "title": "Title",
+        "status": "Status",
+        "priority": "Priority",
+        "assignee": "Assignee",
+        "dueDate": "Due date",
+        "updatedAt": "Updated"
+      }
+    },
     "empty": {
       "title": "No projects yet",
       "description": "Create your first project to start managing tasks."

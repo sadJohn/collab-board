@@ -143,4 +143,10 @@ describe("taskQuerySchema", () => {
     expect(taskQuerySchema.safeParse({ statuses: ["TODO", "ARCHIVED"] }).success).toBe(false);
     expect(taskQuerySchema.safeParse({ sortBy: "unknown" }).success).toBe(false);
   });
+
+  it("normalizes single and comma-separated filters from the query string", () => {
+    expect(taskQuerySchema.parse({ statuses: "DONE" }).statuses).toEqual(["DONE"]);
+    expect(taskQuerySchema.parse({ statuses: "TODO, DONE" }).statuses).toEqual(["TODO", "DONE"]);
+    expect(taskQuerySchema.parse({ priorities: "HIGH" }).priorities).toEqual(["HIGH"]);
+  });
 });
