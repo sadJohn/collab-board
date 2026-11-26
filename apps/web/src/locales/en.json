@@ -22,6 +22,28 @@
     "zhCN": "中文",
     "enUS": "English"
   },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Sign in to your workspace with email and password.",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "failed": "Sign-in failed. Check your email and password.",
+      "noAccount": "No account yet?",
+      "toRegister": "Create one"
+    },
+    "signUp": {
+      "title": "Create account",
+      "subtitle": "Register to create or join a workspace.",
+      "submit": "Sign up",
+      "submitting": "Signing up…",
+      "failed": "Sign-up failed. Please try again.",
+      "haveAccount": "Already have an account?",
+      "toSignIn": "Sign in"
+    }
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for has moved or never existed.",

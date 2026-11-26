@@ -1,3 +1,4 @@
+export * from "./auth.js";
 export * from "./comment.js";
 export * from "./entity.js";
 export * from "./project.js";

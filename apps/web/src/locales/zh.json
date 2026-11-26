@@ -22,6 +22,28 @@
     "zhCN": "中文",
     "enUS": "English"
   },
+  "auth": {
+    "email": "邮箱",
+    "password": "密码",
+    "signIn": {
+      "title": "登录",
+      "subtitle": "使用邮箱和密码登录你的工作区。",
+      "submit": "登录",
+      "submitting": "登录中…",
+      "failed": "登录失败，请检查邮箱和密码。",
+      "noAccount": "还没有账号？",
+      "toRegister": "创建账号"
+    },
+    "signUp": {
+      "title": "创建账号",
+      "subtitle": "注册后即可创建或加入工作区。",
+      "submit": "注册",
+      "submitting": "注册中…",
+      "failed": "注册失败，请稍后重试。",
+      "haveAccount": "已有账号？",
+      "toSignIn": "去登录"
+    }
+  },
   "notFound": {
     "title": "页面不存在",
     "description": "你访问的页面已被移动或从未存在。",
