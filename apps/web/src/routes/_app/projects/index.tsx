@@ -78,16 +78,22 @@ function ProjectsPage() {
       {projects.length > 0 ? (
         <ul className="grid gap-4 sm:grid-cols-2">
           {projects.map((project) => (
-            <li className="flex flex-col gap-2 rounded-xl border bg-card p-5" key={project.id}>
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="font-medium text-sm">{project.name}</h2>
-                <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
-                  {project.key}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                {project.description || t("projects.noDescription")}
-              </p>
+            <li key={project.id}>
+              <Link
+                className="flex h-full flex-col gap-2 rounded-xl border bg-card p-5 transition-colors hover:bg-accent"
+                params={{ projectId: project.id }}
+                to="/projects/$projectId"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-medium text-sm">{project.name}</h2>
+                  <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+                    {project.key}
+                  </span>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  {project.description || t("projects.noDescription")}
+                </p>
+              </Link>
             </li>
           ))}
         </ul>
