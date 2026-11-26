@@ -22,6 +22,7 @@
 - **服务端状态**：`@tanstack/react-query`（任务状态拖拽/排序变更必须使用乐观更新 Optimistic Updates）
 - **数据表格**：`@tanstack/react-table`（用于任务列表视图 List View，支持多列排序、过滤、分页和批量行选择）
 - **客户端状态**：`zustand`（仅管理纯前端 UI 状态：侧边栏折叠、当前打开的任务详情抽屉 ID、全局命令面板状态）
+- **国际化 (i18n)**：`i18next` + `react-i18next` + `i18next-browser-languagedetector`（支持 `zh-CN` 与 `en-US` 无刷新切换，必须配置 TypeScript 类型安全校验，防止拼写错误）
 - **UI 与样式**：`Tailwind CSS` + `shadcn/ui`
 - **表单处理**：`react-hook-form` + `@hookform/resolvers/zod`
 - **动画效果**：`motion`（使用 `motion/react` 实现看板卡片拖拽过渡、基于 `layoutId` 的布局动画，以及抽屉/弹窗过渡动画）
@@ -47,6 +48,7 @@ collab-board/
 │   │   │   ├── routes/         # TanStack Router 文件路由
 │   │   │   ├── components/     # 业务组件 (kanban, table, auth, layout)
 │   │   │   ├── hooks/          # 自定义 Hooks (useSocket, useOptimisticTask)
+│   │   │   ├── locales/        # i18n 语言包 (en.json, zh.json) 与 i18n.ts 配置
 │   │   │   ├── stores/         # Zustand 状态库 (ui-store.ts)
 │   │   │   └── lib/            # API 客户端、BetterAuth 客户端、QueryClient 配置
 │   └── server/                    # NestJS 后端应用
@@ -121,21 +123,24 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
 - 编写自定义的 NestJS `AuthGuard`，通过 `auth.api.getSession({ headers })` 校验请求头中的会话并保护业务接口。
 - 前端使用 `better-auth/react` 客户端（启用 `organizationClient()` 插件），并在 TanStack Router 的 `beforeLoad` 钩子中拦截未登录用户重定向至 `/login`。
 
-### B. 视图与前端核心交互
-
-1. **工作区切换器（Workspace Switcher）**：支持在不同 BetterAuth 组织间切换，并支持通过邮箱邀请新成员。
-2. **项目看板视图（Kanban View）**：
-   - 按 `TaskStatus` 分列展示任务卡片。
-   - 支持跨列拖拽改变状态，以及同列上下拖拽排序（基于 `Float` 类型的 `position` 计算中值）。
-   - **核心要求**：必须使用 `TanStack Query` 的 `onMutate` 实现无延迟的乐观更新（Optimistic UI Updates），接口报错时自动回滚。
-   - 使用 `motion` 的 `layout` 和 `layoutId` 属性实现卡片移动的平滑过渡动画。
-3. **项目列表视图（List View）**：
-   - 基于 `TanStack Table` 构建。
-   - 功能要求：支持按优先级和截止日期排序、关键词搜索过滤、状态多选过滤（过滤条件必须通过 TanStack Router 的 `validateSearch` 双向绑定到 URL 参数中），以及多选批量删除/批量修改状态。
-4. **任务详情抽屉（Task Detail Drawer）**：
-   - 由 `Zustand`（`activeTaskId`）控制抽屉的开关与当前展示的任务。
-   - 使用 `React Hook Form` + `@repo/shared` 中的 Zod Schema 编辑任务字段。
-   - 抽屉底部包含实时任务评论区。
+### B. 视图、国际化与前端核心交互
+1. **中英文双语切换（i18n）**：
+   * 在 `apps/web/src/locales/` 下维护 `zh.json` 和 `en.json` 两份结构完全一致的语言包，并通过 TypeScript 类型声明实现 `t('...')` 翻译 Key 的严格类型检查（不存在的 Key 编译报错）。
+   * 顶部导航栏提供语言切换下拉按钮（中文 / English），切换状态同步至 `Zustand`（持久化到 `localStorage`）并即时更新界面所有文案（包括看板状态列名称、表格表头、弹窗按钮及表单提示）。
+   * `@repo/shared` 中的 Zod Schema 校验错误信息优先使用英文或错误码标识，前端在表单展示时映射为对应的 i18n 本地化提示。
+2. **工作区切换器（Workspace Switcher）**：支持在不同 BetterAuth 组织间切换，并支持通过邮箱邀请新成员。
+3. **项目看板视图（Kanban View）**：
+   * 按 `TaskStatus` 分列展示任务卡片。
+   * 支持跨列拖拽改变状态，以及同列上下拖拽排序（基于 `Float` 类型的 `position` 计算中值）。
+   * **核心要求**：必须使用 `TanStack Query` 的 `onMutate` 实现无延迟的乐观更新（Optimistic UI Updates），接口报错时自动回滚。
+   * 使用 `motion` 的 `layout` 和 `layoutId` 属性实现卡片移动的平滑过渡动画。
+4. **项目列表视图（List View）**：
+   * 基于 `TanStack Table` 构建。
+   * 功能要求：支持按优先级和截止日期排序、关键词搜索过滤、状态多选过滤（过滤条件必须通过 TanStack Router 的 `validateSearch` 双向绑定到 URL 参数中），以及多选批量删除/批量修改状态。
+5. **任务详情抽屉（Task Detail Drawer）**：
+   * 由 `Zustand`（`activeTaskId`）控制抽屉的开关与当前展示的任务。
+   * 使用 `React Hook Form` + `@repo/shared` 中的 Zod Schema 编辑任务字段。
+   * 抽屉底部包含实时任务评论区。
 
 ### C. 多人实时同步 (`Socket.io`)
 
@@ -180,6 +185,23 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
   - 初始化 `apps/web`（Vite + React + Tailwind CSS + shadcn/ui）。
   - 配置 `TanStack Router`（文件路由）和 `TanStack Query`。
   - 开发登录、注册以及工作区创建/切换页面，并与 BetterAuth 联调打通。
+  - **子任务拆解（3.1 – 3.11）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **3A 前端工程骨架**
+      - **3.1 初始化 `apps/web` 与 `packages/ui`**：Vite + React 19 + TypeScript（strict）；接入 Tailwind CSS 与 shadcn/ui（`components.json`、基础主题变量）；`packages/ui` 提供 Tailwind 预设与 `cn` 工具；声明 `@repo/shared`（`workspace:*`）依赖；`.env.example` 增加 `VITE_API_URL`。验收：`pnpm --filter @repo/web dev` 启动并渲染占位首页，`build` / `typecheck` 通过。
+      - **3.2 前端测试基座**：为 `apps/web` 配置 `vitest.config.ts`（jsdom + SWC/React 插件）与 `@testing-library/react`，并纳入根 `turbo.json` 的 `test` 流水线。验收：一个组件或工具函数冒烟测试通过，`pnpm test` 能跑到 web 包。
+    - **3B 国际化与全局 UI 状态**
+      - **3.3 i18n 基础设施**：`src/locales/zh.json` 与 `en.json` 结构完全一致；`src/locales/i18n.ts` 接入 `i18next`、`react-i18next`、`i18next-browser-languagedetector`，并通过 `CustomTypeOptions` 以 `zh.json` 推导翻译 Key 类型。验收：调用不存在的 Key 时 `tsc --noEmit` 报错。
+      - **3.4 语言切换（Zustand）**：`src/stores/ui-store.ts` 提供 `language` 状态，使用 `persist` 中间件写入 `localStorage`，并与 i18next 双向同步；封装独立的 `<LanguageSwitcher />` 下拉组件并在占位首页挂载验证。验收：切换后所有文案即时更新且刷新后保持；store 单元测试（Vitest）通过。
+    - **3C 路由与服务端状态**
+      - **3.5 TanStack Router（文件路由）**：配置 Vite 插件生成 `routeTree.gen.ts`（Biome 忽略该文件）；`__root.tsx` 作为根布局并挂载 `QueryClientProvider`、i18n Provider 与 404 / 错误边界；`/` 重定向到默认入口。验收：文件路由自动生成，直接访问与客户端跳转均正常。
+      - **3.6 API 客户端与 Query 基建**：`src/lib/api-client.ts` 封装 `fetch`（`VITE_API_URL`、`credentials: "include"`、统一解析 400 字段级错误与 401/403）、`src/lib/query-client.ts` 配置默认重试与 `staleTime`、`src/lib/query-keys.ts` 集中管理 query key。验收：错误映射单元测试通过，`pnpm --filter @repo/web typecheck` 无 `any`。
+    - **3D 认证与工作区**
+      - **3.7 BetterAuth 客户端与表单基座**：`src/lib/auth-client.ts` 使用 `better-auth/react` 并启用 `organizationClient()`，导出 `authClient`、`useSession`、`useListOrganizations`、`useActiveOrganization`；封装 React Hook Form + `zodResolver` 的通用表单字段组件。验收：`typecheck` 通过，session hook 可获取当前会话。
+      - **3.8 登录 / 注册页面**：`/login`、`/register` 两个路由，使用 React Hook Form + Zod 校验邮箱与密码，展示字段级错误与提交态，成功后跳转工作区。验收：与本地 server 联调可完成注册、登录、退出。
+      - **3.9 路由守卫（`beforeLoad`）**：受保护路由在 `beforeLoad` 中通过异步非 Hook 方法（`authClient.getSession()` 结合 `queryClient.ensureQueryData`）校验会话，未登录重定向 `/login` 并携带 `redirect` 参数；已登录用户访问 `/login`、`/register` 时重定向至工作区。验收：未登录访问受保护路由被拦截，登录后回到原目标地址。
+      - **3.10 工作区页面与应用外壳**：支持创建组织、列出并切换组织（`setActive`）、按邮箱邀请成员；实现受保护布局：顶部导航（工作区切换器、语言切换、用户菜单/退出）与侧边栏占位。验收：切换工作区后 `activeOrganizationId` 生效，受保护接口返回 200；邀请接口调用成功。
+      - **3.11 收尾自检**：补齐 web 单元测试（ui-store、登录表单校验），运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错。
+  - **阶段三完成标准**：注册/登录/退出可用；工作区可创建、切换并邀请成员；未登录访问受保护路由正确重定向；中英文切换即时生效且刷新后保持；`pnpm test` 全部通过。
 - **第四阶段（Phase 4）：核心业务视图（数据表格与看板）**
   - 实现 `Zustand` 全局 UI 状态管理（附带 Vitest 基础测试）。
   - 开发项目列表视图（集成 `TanStack Table` 与 URL Search Params 同步）。
