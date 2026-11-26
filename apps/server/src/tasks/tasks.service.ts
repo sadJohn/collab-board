@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from "@nes
 import type { Prisma, PrismaClient, Task, TaskStatus } from "@repo/db";
 import {
   type CreateTaskData,
+  computePosition,
   INITIAL_TASK_POSITION,
   type MoveTaskData,
   TASK_POSITION_STEP,
@@ -9,7 +10,6 @@ import {
   type UpdateTaskData,
 } from "@repo/shared";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
-import { computePosition } from "./position";
 
 export interface TaskPage {
   items: Task[];

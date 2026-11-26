@@ -5,7 +5,8 @@ import { taskPrioritySchema, taskStatusSchema } from "../enums.js";
  * Read models shared between the API, Socket.IO payloads and the web client.
  *
  * Prisma returns `Date` objects, but everything crossing the wire is JSON,
- * therefore timestamps are typed and validated as ISO-8601 strings.
+ * therefore timestamps are typed and validated as ISO-8601 strings. The web app
+ * parses every response at the API boundary with these schemas.
  */
 const isoDateTimeSchema = z
   .string()
@@ -26,6 +27,14 @@ export const taskDtoSchema = z.object({
   updatedAt: isoDateTimeSchema,
 });
 export type TaskDto = z.infer<typeof taskDtoSchema>;
+
+export const taskPageDtoSchema = z.object({
+  items: z.array(taskDtoSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+});
+export type TaskPageDto = z.infer<typeof taskPageDtoSchema>;
 
 export const projectDtoSchema = z.object({
   id: z.string().min(1),

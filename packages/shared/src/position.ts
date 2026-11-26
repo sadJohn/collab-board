@@ -1,4 +1,4 @@
-import { INITIAL_TASK_POSITION, TASK_POSITION_STEP } from "@repo/shared";
+import { INITIAL_TASK_POSITION, TASK_POSITION_STEP } from "./constants.js";
 
 /**
  * Positions shrink by half on every insert between two neighbours. Once the gap
@@ -17,7 +17,8 @@ export interface ComputedPosition {
  * Computes the fractional index for a task dropped between two neighbours.
  *
  * `null` means "no neighbour on that side", e.g. dropping at the top or the
- * bottom of a column.
+ * bottom of a column. This is shared by the server (authoritative write) and the
+ * web board (optimistic cache update) so both compute identical midpoints.
  */
 export function computePosition(previous: number | null, next: number | null): ComputedPosition {
   if (previous !== null && next !== null) {

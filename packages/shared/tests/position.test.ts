@@ -1,6 +1,6 @@
-import { INITIAL_TASK_POSITION, TASK_POSITION_STEP } from "@repo/shared";
 import { describe, expect, it } from "vitest";
-import { computePosition, MIN_POSITION_GAP } from "./position";
+import { INITIAL_TASK_POSITION, TASK_POSITION_STEP } from "../src/index.js";
+import { computePosition, MIN_POSITION_GAP } from "../src/position.js";
 
 describe("computePosition", () => {
   it("uses the initial position for an empty column", () => {
@@ -43,5 +43,17 @@ describe("computePosition", () => {
     const result = computePosition(1000, 1000 + MIN_POSITION_GAP / 2);
 
     expect(result.rebalanceRequired).toBe(true);
+  });
+
+  it("flags a rebalance once repeated halving exhausts float precision", () => {
+    const previous = 1000;
+
+    expect(computePosition(previous, previous + MIN_POSITION_GAP * 2).rebalanceRequired).toBe(
+      false,
+    );
+
+    // Simulate the worst case: the gap is already smaller than the threshold.
+    const exhausted = computePosition(previous, previous + MIN_POSITION_GAP / 1000);
+    expect(exhausted.rebalanceRequired).toBe(true);
   });
 });
