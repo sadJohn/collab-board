@@ -1,17 +1,17 @@
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { App } from "./app";
-import i18n from "./locales/i18n";
-import { useUiStore } from "./stores/ui-store";
+import i18n from "../locales/i18n";
+import { useUiStore } from "../stores/ui-store";
+import { HomePage } from "./home-page";
 
 beforeEach(async () => {
   await i18n.changeLanguage("en-US");
 });
 
-describe("App", () => {
+describe("HomePage", () => {
   it("renders the homepage copy and all task statuses in English", () => {
-    render(<App />);
+    render(<HomePage />);
 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       "Real-time tasks, without the refresh button.",
@@ -23,7 +23,7 @@ describe("App", () => {
   });
 
   it("updates every string when the language changes", async () => {
-    render(<App />);
+    render(<HomePage />);
 
     await act(async () => {
       useUiStore.getState().setLanguage("zh-CN");

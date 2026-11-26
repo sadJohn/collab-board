@@ -21,5 +21,15 @@
     "label": "Language",
     "zhCN": "中文",
     "enUS": "English"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for has moved or never existed.",
+    "back": "Back to home"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "The page failed to load. Please try again.",
+    "retry": "Try again"
   }
 }

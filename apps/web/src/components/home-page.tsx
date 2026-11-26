@@ -3,11 +3,11 @@ import { Button } from "@repo/ui";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { LanguageSwitcher } from "./components/language-switcher";
+import { LanguageSwitcher } from "./language-switcher";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-export function App() {
+export function HomePage() {
   const { t } = useTranslation();
 
   return (
