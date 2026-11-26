@@ -46,11 +46,39 @@
   },
   "nav": {
     "home": "首页",
+    "projects": "项目",
     "workspace": "工作区",
     "toggleSidebar": "展开或收起侧边栏"
   },
   "user": {
     "signOut": "退出登录"
+  },
+  "projects": {
+    "title": "项目",
+    "subtitle": "用项目组织任务，并在看板与列表中跟踪进度。",
+    "new": "新建项目",
+    "loading": "加载项目中…",
+    "loadFailed": "项目加载失败，请重试。",
+    "noWorkspace": "请先选择或创建一个工作区，再添加项目。",
+    "selectWorkspace": "前往工作区",
+    "noDescription": "暂无描述",
+    "empty": {
+      "title": "还没有项目",
+      "description": "创建第一个项目，开始管理任务。"
+    },
+    "create": {
+      "title": "新建项目",
+      "subtitle": "项目用简短标识归类任务，例如 ENG-12。",
+      "name": "名称",
+      "key": "标识",
+      "keyHint": "以大写字母开头，仅包含大写字母与数字。",
+      "description": "描述",
+      "reset": "重置",
+      "submit": "创建项目",
+      "submitting": "创建中…",
+      "keyExists": "该项目标识已存在。",
+      "failed": "创建项目失败，请重试。"
+    }
   },
   "workspace": {
     "title": "工作区",

@@ -46,11 +46,39 @@
   },
   "nav": {
     "home": "Home",
+    "projects": "Projects",
     "workspace": "Workspace",
     "toggleSidebar": "Toggle sidebar"
   },
   "user": {
     "signOut": "Sign out"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Group tasks into projects and track them on boards and lists.",
+    "new": "New project",
+    "loading": "Loading projects…",
+    "loadFailed": "Could not load projects.",
+    "noWorkspace": "Select or create a workspace before adding projects.",
+    "selectWorkspace": "Go to workspace",
+    "noDescription": "No description",
+    "empty": {
+      "title": "No projects yet",
+      "description": "Create your first project to start managing tasks."
+    },
+    "create": {
+      "title": "New project",
+      "subtitle": "Projects group tasks under a short key, e.g. ENG-12.",
+      "name": "Name",
+      "key": "Key",
+      "keyHint": "Starts with an uppercase letter; uppercase letters and digits only.",
+      "description": "Description",
+      "reset": "Reset",
+      "submit": "Create project",
+      "submitting": "Creating…",
+      "keyExists": "A project with this key already exists.",
+      "failed": "Could not create the project. Try again."
+    }
   },
   "workspace": {
     "title": "Workspace",

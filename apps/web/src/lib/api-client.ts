@@ -118,10 +118,10 @@ export const api = ky.create({
   prefix: baseUrl,
   credentials: "include",
   hooks: {
-    beforeError: [
-      (error) => {
-        throw toApiError(error);
-      },
-    ],
+    /**
+     * ky v2 passes a state object (not the raw error) to `beforeError`, and the
+     * returned Error replaces the one ky would throw.
+     */
+    beforeError: [({ error }) => toApiError(error)],
   },
 });

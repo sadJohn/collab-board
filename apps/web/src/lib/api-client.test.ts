@@ -71,11 +71,44 @@ describe("api instance", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     try {
-      await expect(api.get("projects")).rejects.toBeInstanceOf(ApiError);
+      const error = await api.get("projects").then(
+        () => null,
+        (cause: unknown) => cause,
+      );
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(401);
+      expect((error as ApiError).message).toBe("Unauthorized");
 
       const request = fetchMock.mock.calls[0]?.[0];
       expect(request).toBeInstanceOf(Request);
       expect(request?.url).toBe("http://localhost:3000/projects");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps the HTTP status and server message for conflicts", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async (_request: Request) =>
+          new Response(JSON.stringify({ message: "该项目标识在工作区内已被使用" }), {
+            status: 409,
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    );
+
+    try {
+      const error = await api.post("projects", { json: {} }).then(
+        () => null,
+        (cause: unknown) => cause,
+      );
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(409);
+      expect((error as ApiError).message).toBe("该项目标识在工作区内已被使用");
     } finally {
       vi.unstubAllGlobals();
     }
