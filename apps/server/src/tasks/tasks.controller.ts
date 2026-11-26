@@ -27,7 +27,7 @@ import { CurrentOrganization } from "../auth/current-organization.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { OrganizationGuard } from "../auth/organization.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
-import type { TaskPage, TasksService } from "./tasks.service";
+import { type TaskPage, TasksService } from "./tasks.service";
 
 @Controller()
 @UseGuards(AuthGuard, OrganizationGuard)

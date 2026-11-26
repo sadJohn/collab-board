@@ -17,7 +17,7 @@ import { CurrentOrganization } from "../auth/current-organization.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { OrganizationGuard, type OrganizationRequest } from "../auth/organization.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
-import type { CommentsService } from "./comments.service";
+import { CommentsService } from "./comments.service";
 
 @Controller()
 @UseGuards(AuthGuard, OrganizationGuard)

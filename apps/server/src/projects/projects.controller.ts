@@ -21,7 +21,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import { CurrentOrganization } from "../auth/current-organization.decorator";
 import { OrganizationGuard } from "../auth/organization.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
-import type { ProjectsService } from "./projects.service";
+import { ProjectsService } from "./projects.service";
 
 @Controller("projects")
 @UseGuards(AuthGuard, OrganizationGuard)
