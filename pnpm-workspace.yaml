@@ -32,3 +32,4 @@ minimumReleaseAgeExclude:
   - "@nestjs/testing@12.6.2"
   - "@types/react@19.3.3"
   - lucide-react@1.80.0
+  - i18next@27.2.9

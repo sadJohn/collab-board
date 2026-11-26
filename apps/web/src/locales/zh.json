@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "Collab Board",
+    "badge": "第三阶段 · 前端基础架构",
+    "tagline": "实时协作任务，无需刷新页面。",
+    "description": "React 19、Vite、Tailwind CSS v4 与 shadcn/ui 已就绪。来自 @repo/shared 的共享 Zod Schema 与来自 @repo/ui 的 UI 组件均已接入。",
+    "cta": {
+      "getStarted": "开始使用",
+      "viewBoard": "查看看板",
+      "docs": "文档"
+    }
+  },
+  "taskStatus": {
+    "BACKLOG": "待办池",
+    "TODO": "待处理",
+    "IN_PROGRESS": "进行中",
+    "DONE": "已完成",
+    "CANCELED": "已取消"
+  }
+}
