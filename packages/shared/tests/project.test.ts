@@ -6,7 +6,7 @@ import {
   PROJECT_NAME_MAX_LENGTH,
   projectKeySchema,
   updateProjectSchema,
-} from "../src/index";
+} from "../src/index.js";
 
 describe("projectKeySchema", () => {
   it.each(["ENG", "A1", "PLATFORM"])("accepts %s", (key) => {

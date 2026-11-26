@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { taskStatusSchema } from "./enums";
-import { commentDtoSchema, taskDtoSchema } from "./schemas/entity";
+import { taskStatusSchema } from "./enums.js";
+import { commentDtoSchema, taskDtoSchema } from "./schemas/entity.js";
 
 /**
  * Socket.IO contract shared by `apps/server` (gateway) and `apps/web` (client).

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { taskPrioritySchema, taskStatusSchema } from "../enums";
+import { taskPrioritySchema, taskStatusSchema } from "../enums.js";
 
 /**
  * Read models shared between the API, Socket.IO payloads and the web client.

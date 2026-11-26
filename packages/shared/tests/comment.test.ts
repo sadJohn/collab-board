@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { COMMENT_CONTENT_MAX_LENGTH, createCommentSchema, updateCommentSchema } from "../src/index";
+import {
+  COMMENT_CONTENT_MAX_LENGTH,
+  createCommentSchema,
+  updateCommentSchema,
+} from "../src/index.js";
 
 describe("createCommentSchema", () => {
   it("trims the content", () => {

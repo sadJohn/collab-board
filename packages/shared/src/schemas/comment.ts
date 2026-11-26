@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COMMENT_CONTENT_MAX_LENGTH, COMMENT_CONTENT_MIN_LENGTH } from "../constants";
+import { COMMENT_CONTENT_MAX_LENGTH, COMMENT_CONTENT_MIN_LENGTH } from "../constants.js";
 
 export const commentContentSchema = z
   .string()

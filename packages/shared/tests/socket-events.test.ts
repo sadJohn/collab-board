@@ -6,7 +6,7 @@ import {
   socketPayloadSchemas,
   type TaskDto,
   taskDtoSchema,
-} from "../src/index";
+} from "../src/index.js";
 
 const task: TaskDto = {
   id: "task_1",

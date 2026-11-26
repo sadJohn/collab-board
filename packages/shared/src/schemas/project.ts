@@ -6,7 +6,7 @@ import {
   PROJECT_KEY_PATTERN,
   PROJECT_NAME_MAX_LENGTH,
   PROJECT_NAME_MIN_LENGTH,
-} from "../constants";
+} from "../constants.js";
 
 export const projectNameSchema = z
   .string()

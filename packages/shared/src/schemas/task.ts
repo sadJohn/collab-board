@@ -9,8 +9,8 @@ import {
   TASK_DESCRIPTION_MAX_LENGTH,
   TASK_TITLE_MAX_LENGTH,
   TASK_TITLE_MIN_LENGTH,
-} from "../constants";
-import { taskPrioritySchema, taskStatusSchema } from "../enums";
+} from "../constants.js";
+import { taskPrioritySchema, taskStatusSchema } from "../enums.js";
 
 export const taskTitleSchema = z
   .string()

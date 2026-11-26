@@ -6,7 +6,7 @@ import {
   TASK_TITLE_MAX_LENGTH,
   taskQuerySchema,
   updateTaskSchema,
-} from "../src/index";
+} from "../src/index.js";
 
 const validTask = { title: "Ship phase 1", projectId: "project_1" };
 
