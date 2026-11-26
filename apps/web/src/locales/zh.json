@@ -16,5 +16,10 @@
     "IN_PROGRESS": "进行中",
     "DONE": "已完成",
     "CANCELED": "已取消"
+  },
+  "language": {
+    "label": "语言",
+    "zhCN": "中文",
+    "enUS": "English"
   }
 }
