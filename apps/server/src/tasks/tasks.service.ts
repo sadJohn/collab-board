@@ -54,6 +54,10 @@ export class TasksService {
     return { items, total, page: query.page, pageSize: query.pageSize };
   }
 
+  async findOne(organizationId: string, id: string): Promise<Task> {
+    return this.findOwnedTask(organizationId, id);
+  }
+
   async create(organizationId: string, creatorId: string, data: CreateTaskData): Promise<Task> {
     await this.assertProjectInOrganization(organizationId, data.projectId);
 

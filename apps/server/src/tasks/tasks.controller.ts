@@ -43,6 +43,11 @@ export class TasksController {
     return this.tasksService.findAll(organizationId, projectId, query);
   }
 
+  @Get("tasks/:id")
+  findOne(@CurrentOrganization() organizationId: string, @Param("id") id: string): Promise<Task> {
+    return this.tasksService.findOne(organizationId, id);
+  }
+
   @Post("tasks")
   create(
     @CurrentOrganization() organizationId: string,

@@ -225,6 +225,26 @@ describe("TasksService", () => {
     });
   });
 
+  describe("findOne", () => {
+    it("returns a task that belongs to the organization", async () => {
+      const task = buildTask();
+      taskFindFirst.mockResolvedValue(task);
+
+      await expect(service.findOne("org_1", "task_1")).resolves.toBe(task);
+      expect(taskFindFirst).toHaveBeenCalledWith({
+        where: { id: "task_1", project: { organizationId: "org_1" } },
+      });
+    });
+
+    it("rejects a task from another organization", async () => {
+      taskFindFirst.mockResolvedValue(null);
+
+      await expect(service.findOne("org_1", "task_other")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
   describe("remove", () => {
     it("deletes a task after verifying its project belongs to the organization", async () => {
       taskFindFirst.mockResolvedValue(buildTask());

@@ -10,9 +10,15 @@ interface SortableTaskCardProps {
   assigneeName?: string;
   /** Disabled while dragging or during the post-drop cooldown to avoid double animation. */
   suppressLayout: boolean;
+  onOpen?: () => void;
 }
 
-export function SortableTaskCard({ task, assigneeName, suppressLayout }: SortableTaskCardProps) {
+export function SortableTaskCard({
+  task,
+  assigneeName,
+  suppressLayout,
+  onOpen,
+}: SortableTaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -28,6 +34,7 @@ export function SortableTaskCard({ task, assigneeName, suppressLayout }: Sortabl
       <motion.div
         className="cursor-grab touch-none active:cursor-grabbing"
         layout={suppressLayout ? false : "position"}
+        onClick={onOpen}
         transition={{ duration: 0.15 }}
       >
         <TaskCard assigneeName={assigneeName} task={task} />

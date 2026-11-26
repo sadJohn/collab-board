@@ -19,6 +19,7 @@ interface BoardColumnProps {
   projectId: string;
   suppressLayout: boolean;
   membersById: Map<string, string>;
+  onOpenTask: (taskId: string) => void;
 }
 
 export function BoardColumn({
@@ -27,6 +28,7 @@ export function BoardColumn({
   projectId,
   suppressLayout,
   membersById,
+  onOpenTask,
 }: BoardColumnProps) {
   const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
@@ -70,6 +72,7 @@ export function BoardColumn({
             <SortableTaskCard
               assigneeName={membersById.get(task.assigneeId ?? "")}
               key={task.id}
+              onOpen={() => onOpenTask(task.id)}
               suppressLayout={suppressLayout}
               task={task}
             />

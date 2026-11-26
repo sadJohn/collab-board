@@ -24,6 +24,7 @@ import {
   taskListSearchSchema,
   toTaskListParams,
 } from "../../../../lib/task-search";
+import { useUiStore } from "../../../../stores/ui-store";
 
 export const Route = createFileRoute("/_app/projects/$projectId/list")({
   validateSearch: taskListSearchSchema,
@@ -43,6 +44,7 @@ function ProjectListPage() {
   const queryClient = useQueryClient();
   const activeOrganization = useActiveOrganization();
   const organizationId = activeOrganization.data?.id ?? "";
+  const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
 
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [searchInput, setSearchInput] = useState(search.q);
@@ -81,11 +83,18 @@ function ProjectListPage() {
     return () => clearTimeout(timer);
   }, [searchInput, search.q, navigate]);
 
+  const [appliedFilterKey, setAppliedFilterKey] = useState(filterKey);
+
   // A selection made under one filter must not leak into the next one.
   useEffect(() => {
+    if (appliedFilterKey === filterKey) {
+      return;
+    }
+
+    setAppliedFilterKey(filterKey);
     setRowSelection({});
     setBatchSummary(null);
-  }, [filterKey]);
+  }, [filterKey, appliedFilterKey]);
 
   const tasksQuery = useQuery({
     queryKey: queryKeys.tasks.list(organizationId, projectId, {
@@ -172,7 +181,15 @@ function ProjectListPage() {
       }),
       columnHelper.accessor("title", {
         header: t("projects.list.columns.title"),
-        cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+        cell: (info) => (
+          <button
+            className="text-left font-medium hover:underline"
+            onClick={() => setActiveTaskId(info.row.original.id)}
+            type="button"
+          >
+            {info.getValue()}
+          </button>
+        ),
       }),
       columnHelper.accessor("status", {
         header: t("projects.list.columns.status"),
@@ -202,7 +219,7 @@ function ProjectListPage() {
         cell: (info) => dateFormatter.format(new Date(info.getValue())),
       }),
     ];
-  }, [t, membersById, dateFormatter, search.sortBy, search.sortOrder, handleSort]);
+  }, [t, membersById, dateFormatter, search.sortBy, search.sortOrder, handleSort, setActiveTaskId]);
 
   const tasks = tasksQuery.data?.items ?? [];
   const total = tasksQuery.data?.total ?? 0;

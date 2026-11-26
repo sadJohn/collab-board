@@ -68,6 +68,32 @@
     "moveFailed": "Move failed. The previous order was restored.",
     "truncated": "Showing the first {{count}} tasks. Use the list view to see them all."
   },
+  "task": {
+    "drawerTitle": "Task details",
+    "loading": "Loading task…",
+    "loadFailed": "Could not load this task. Close and try again.",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "status": "Status",
+      "priority": "Priority",
+      "assignee": "Assignee",
+      "dueDate": "Due date",
+      "unassigned": "Unassigned"
+    },
+    "save": "Save",
+    "saving": "Saving…",
+    "saveFailed": "Save failed. The previous values were restored.",
+    "comments": "Comments",
+    "commentsLoading": "Loading comments…",
+    "commentsEmpty": "No comments yet",
+    "commentPlaceholder": "Write a comment…",
+    "commentSubmit": "Comment",
+    "commentSubmitting": "Sending…",
+    "commentFailed": "Could not send the comment. Try again.",
+    "commentDelete": "Delete",
+    "commentDeleteFailed": "Could not delete the comment. Try again."
+  },
   "projects": {
     "title": "Projects",
     "subtitle": "Group tasks into projects and track them on boards and lists.",

@@ -26,6 +26,7 @@ import { listTasks, moveTask } from "../../lib/api/tasks";
 import { useActiveOrganization } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
 import { type BoardDropTarget, planTaskMove, type TaskMovePlan } from "../../lib/task-board";
+import { useUiStore } from "../../stores/ui-store";
 import { TaskCard } from "../task/task-card";
 import { BoardColumn } from "./board-column";
 
@@ -49,11 +50,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const organizationId = useActiveOrganization().data?.id ?? "";
+  const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [settling, setSettling] = useState(false);
   const [moveFailed, setMoveFailed] = useState(false);
   const settleTimer = useRef<number | undefined>(undefined);
+  const draggedRecently = useRef(false);
 
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
@@ -142,11 +145,24 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   function startSettling() {
     setSettling(true);
     window.clearTimeout(settleTimer.current);
-    settleTimer.current = window.setTimeout(() => setSettling(false), SETTLE_MS);
+    settleTimer.current = window.setTimeout(() => {
+      setSettling(false);
+      draggedRecently.current = false;
+    }, SETTLE_MS);
   }
 
   function handleDragStart(event: DragStartEvent) {
+    draggedRecently.current = true;
     setDraggingId(String(event.active.id));
+  }
+
+  /** dnd-kit can emit a click after a drop; ignore it so a drag never opens the drawer. */
+  function openTask(taskId: string) {
+    if (draggedRecently.current) {
+      return;
+    }
+
+    setActiveTaskId(taskId);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -227,6 +243,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
             <BoardColumn
               key={status}
               membersById={membersById}
+              onOpenTask={openTask}
               projectId={projectId}
               status={status}
               suppressLayout={suppressLayout}

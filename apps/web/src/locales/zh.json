@@ -68,6 +68,32 @@
     "moveFailed": "移动失败，已恢复原顺序。",
     "truncated": "仅显示前 {{count}} 条任务，请使用列表视图查看全部。"
   },
+  "task": {
+    "drawerTitle": "任务详情",
+    "loading": "加载任务中…",
+    "loadFailed": "任务加载失败，请关闭后重试。",
+    "fields": {
+      "title": "标题",
+      "description": "描述",
+      "status": "状态",
+      "priority": "优先级",
+      "assignee": "指派人",
+      "dueDate": "截止日期",
+      "unassigned": "未指派"
+    },
+    "save": "保存",
+    "saving": "保存中…",
+    "saveFailed": "保存失败，已恢复原值。",
+    "comments": "评论",
+    "commentsLoading": "加载评论中…",
+    "commentsEmpty": "还没有评论",
+    "commentPlaceholder": "写下评论…",
+    "commentSubmit": "发表评论",
+    "commentSubmitting": "发送中…",
+    "commentFailed": "评论发送失败，请重试。",
+    "commentDelete": "删除",
+    "commentDeleteFailed": "删除评论失败，请重试。"
+  },
   "projects": {
     "title": "项目",
     "subtitle": "用项目组织任务，并在看板与列表中跟踪进度。",
