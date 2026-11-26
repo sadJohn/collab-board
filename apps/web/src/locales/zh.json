@@ -46,7 +46,8 @@
   },
   "nav": {
     "home": "首页",
-    "workspace": "工作区"
+    "workspace": "工作区",
+    "toggleSidebar": "展开或收起侧边栏"
   },
   "user": {
     "signOut": "退出登录"

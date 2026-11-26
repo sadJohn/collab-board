@@ -10,6 +10,15 @@ import i18n, {
 interface UiState {
   language: SupportedLanguage;
   setLanguage: (language: SupportedLanguage) => void;
+  /** Desktop sidebar collapse state, persisted so it survives reloads. */
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebar: () => void;
+  /** Task detail drawer; `null` means the drawer is closed. */
+  activeTaskId: string | null;
+  setActiveTaskId: (taskId: string | null) => void;
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
 }
 
 function resolveInitialLanguage(): SupportedLanguage {
@@ -19,9 +28,9 @@ function resolveInitialLanguage(): SupportedLanguage {
 /**
  * Client-only UI state. Server data never lives here — TanStack Query owns it.
  *
- * The language is persisted to localStorage and kept in sync with i18next in
- * both directions: `setLanguage` drives i18next, and language changes coming
- * from elsewhere (detector, tests, future features) are mirrored back.
+ * The language and the sidebar preference are persisted to localStorage. The
+ * drawer and command palette are transient session state, so they are excluded
+ * from `partialize`.
  */
 export const useUiStore = create<UiState>()(
   persist(
@@ -31,11 +40,29 @@ export const useUiStore = create<UiState>()(
         set({ language });
         void i18n.changeLanguage(language);
       },
+      sidebarCollapsed: false,
+      setSidebarCollapsed: (sidebarCollapsed) => {
+        set({ sidebarCollapsed });
+      },
+      toggleSidebar: () => {
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
+      },
+      activeTaskId: null,
+      setActiveTaskId: (activeTaskId) => {
+        set({ activeTaskId });
+      },
+      commandPaletteOpen: false,
+      setCommandPaletteOpen: (commandPaletteOpen) => {
+        set({ commandPaletteOpen });
+      },
     }),
     {
       name: "collab-board.ui",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ language: state.language }),
+      partialize: (state) => ({
+        language: state.language,
+        sidebarCollapsed: state.sidebarCollapsed,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           void i18n.changeLanguage(state.language);

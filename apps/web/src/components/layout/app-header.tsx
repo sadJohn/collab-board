@@ -1,7 +1,7 @@
 import { Button } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -10,6 +10,7 @@ import {
   useListOrganizations,
   useSession,
 } from "../../lib/auth-client";
+import { useUiStore } from "../../stores/ui-store";
 import { LanguageSwitcher } from "../language-switcher";
 
 export function AppHeader() {
@@ -19,6 +20,8 @@ export function AppHeader() {
   const session = useSession();
   const organizations = useListOrganizations();
   const activeOrganization = useActiveOrganization();
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
 
   const activeOrganizationId = activeOrganization.data?.id ?? "";
   const items = organizations.data ?? [];
@@ -46,6 +49,18 @@ export function AppHeader() {
     <header className="border-b">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-6">
         <div className="flex min-w-0 items-center gap-4">
+          <Button
+            aria-label={t("nav.toggleSidebar")}
+            aria-pressed={sidebarCollapsed}
+            className="hidden md:inline-flex"
+            onClick={toggleSidebar}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          </Button>
+
           <Link className="flex items-center gap-2 font-semibold text-sm" to="/home">
             <LayoutDashboard className="size-4" />
             {t("app.name")}

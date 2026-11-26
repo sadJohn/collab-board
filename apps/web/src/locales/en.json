@@ -46,7 +46,8 @@
   },
   "nav": {
     "home": "Home",
-    "workspace": "Workspace"
+    "workspace": "Workspace",
+    "toggleSidebar": "Toggle sidebar"
   },
   "user": {
     "signOut": "Sign out"
