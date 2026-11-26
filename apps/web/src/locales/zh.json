@@ -44,6 +44,42 @@
       "toSignIn": "去登录"
     }
   },
+  "nav": {
+    "home": "首页",
+    "workspace": "工作区"
+  },
+  "user": {
+    "signOut": "退出登录"
+  },
+  "workspace": {
+    "title": "工作区",
+    "subtitle": "创建、切换工作区，并按邮箱邀请成员。",
+    "switcher": "切换工作区",
+    "none": "未选择工作区",
+    "list": "我的工作区",
+    "loading": "加载中…",
+    "empty": "还没有工作区，先创建一个。",
+    "active": "当前工作区",
+    "switch": "切换",
+    "create": {
+      "title": "创建工作区",
+      "name": "名称",
+      "slug": "标识",
+      "slugHint": "小写字母、数字和连字符，例如 acme-team",
+      "submit": "创建",
+      "submitting": "创建中…",
+      "failed": "创建失败，请重试。"
+    },
+    "invite": {
+      "title": "邀请成员",
+      "email": "成员邮箱",
+      "submit": "发送邀请",
+      "submitting": "发送中…",
+      "sent": "已向 {{email}} 发送邀请。",
+      "needActive": "请先选择一个工作区。",
+      "failed": "邀请失败，请重试。"
+    }
+  },
   "notFound": {
     "title": "页面不存在",
     "description": "你访问的页面已被移动或从未存在。",

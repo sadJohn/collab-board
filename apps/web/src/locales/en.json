@@ -44,6 +44,42 @@
       "toSignIn": "Sign in"
     }
   },
+  "nav": {
+    "home": "Home",
+    "workspace": "Workspace"
+  },
+  "user": {
+    "signOut": "Sign out"
+  },
+  "workspace": {
+    "title": "Workspace",
+    "subtitle": "Create and switch workspaces, then invite members by email.",
+    "switcher": "Switch workspace",
+    "none": "No workspace selected",
+    "list": "My workspaces",
+    "loading": "Loading…",
+    "empty": "No workspaces yet. Create one below.",
+    "active": "Active",
+    "switch": "Switch",
+    "create": {
+      "title": "Create workspace",
+      "name": "Name",
+      "slug": "Slug",
+      "slugHint": "Lowercase letters, numbers and hyphens, e.g. acme-team",
+      "submit": "Create",
+      "submitting": "Creating…",
+      "failed": "Could not create the workspace. Try again."
+    },
+    "invite": {
+      "title": "Invite member",
+      "email": "Member email",
+      "submit": "Send invite",
+      "submitting": "Sending…",
+      "sent": "Invitation sent to {{email}}.",
+      "needActive": "Select a workspace first.",
+      "failed": "Could not send the invitation. Try again."
+    }
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for has moved or never existed.",
