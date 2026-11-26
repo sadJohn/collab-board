@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+
+import { KanbanBoard } from "../../../../components/board/kanban-board";
 
 export const Route = createFileRoute("/_app/projects/$projectId/board")({
   component: ProjectBoardPage,
 });
 
 function ProjectBoardPage() {
-  const { t } = useTranslation();
+  const { projectId } = Route.useParams();
 
-  return (
-    <p className="rounded-xl border border-dashed bg-card p-8 text-muted-foreground text-sm">
-      {t("projects.boardPlaceholder")}
-    </p>
-  );
+  return <KanbanBoard projectId={projectId} />;
 }

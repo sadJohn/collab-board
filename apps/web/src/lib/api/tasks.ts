@@ -1,5 +1,5 @@
 import {
-  type CreateTaskData,
+  type CreateTaskInput,
   createTaskSchema,
   type MoveTaskData,
   moveTaskSchema,
@@ -75,7 +75,7 @@ export async function getTask(taskId: string): Promise<TaskDto> {
   return taskDtoSchema.parse(await api.get(`tasks/${taskId}`).json());
 }
 
-export async function createTask(data: CreateTaskData): Promise<TaskDto> {
+export async function createTask(data: CreateTaskInput): Promise<TaskDto> {
   const body = createTaskSchema.parse(data);
   return taskDtoSchema.parse(await api.post("tasks", { json: body }).json());
 }

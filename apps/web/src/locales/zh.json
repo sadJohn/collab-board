@@ -59,6 +59,15 @@
   "user": {
     "signOut": "退出登录"
   },
+  "board": {
+    "loading": "加载看板中…",
+    "emptyColumn": "暂无任务",
+    "addTask": "新建任务",
+    "createPlaceholder": "输入标题后回车创建",
+    "createFailed": "创建任务失败，请重试。",
+    "moveFailed": "移动失败，已恢复原顺序。",
+    "truncated": "仅显示前 {{count}} 条任务，请使用列表视图查看全部。"
+  },
   "projects": {
     "title": "项目",
     "subtitle": "用项目组织任务，并在看板与列表中跟踪进度。",
@@ -72,7 +81,6 @@
     "notFound": "项目不存在或已被删除。",
     "boardTab": "看板",
     "listTab": "列表",
-    "boardPlaceholder": "看板视图即将上线。",
     "list": {
       "loading": "加载任务中…",
       "searchPlaceholder": "搜索任务标题…",

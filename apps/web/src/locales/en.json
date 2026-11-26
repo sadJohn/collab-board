@@ -59,6 +59,15 @@
   "user": {
     "signOut": "Sign out"
   },
+  "board": {
+    "loading": "Loading board…",
+    "emptyColumn": "No tasks",
+    "addTask": "New task",
+    "createPlaceholder": "Type a title and press Enter",
+    "createFailed": "Could not create the task. Try again.",
+    "moveFailed": "Move failed. The previous order was restored.",
+    "truncated": "Showing the first {{count}} tasks. Use the list view to see them all."
+  },
   "projects": {
     "title": "Projects",
     "subtitle": "Group tasks into projects and track them on boards and lists.",
@@ -72,7 +81,6 @@
     "notFound": "This project does not exist or has been deleted.",
     "boardTab": "Board",
     "listTab": "List",
-    "boardPlaceholder": "The board view is coming next.",
     "list": {
       "loading": "Loading tasks…",
       "searchPlaceholder": "Search task titles…",
