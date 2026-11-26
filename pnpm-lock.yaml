@@ -260,6 +260,9 @@ importers:
       i18next-browser-languagedetector:
         specifier: ^8.3.1
         version: 8.3.1
+      ky:
+        specifier: ^2.2.0
+        version: 2.2.0
       lucide-react:
         specifier: ^1.80.0
         version: 1.80.0(@types/react@19.3.3)(react@19.3.1)
@@ -2869,6 +2872,10 @@ packages:
 
   jsonfile@6.2.1:
     resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
+
+  ky@2.2.0:
+    resolution: {integrity: sha512-4+B63kyZt+Y8snQiUGydK1vgY9xYQJZEh9K/nIAIEts+gYJzy1EiAw3BbK8xpWRuWUpN70SNCMjqRGTm75xxIA==}
+    engines: {node: '>=22'}
 
   kysely@0.29.9:
     resolution: {integrity: sha512-K48ErswC3MlIcBqR0pYIIEl+n9rIgwxgzaM1FxKHMXn7egxr1NHj7bCeF98mXl9A3/QoL5I7mo5S/mLXgeDgGA==}
@@ -6259,6 +6266,8 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.12
     optional: true
+
+  ky@2.2.0: {}
 
   kysely@0.29.9: {}
 
