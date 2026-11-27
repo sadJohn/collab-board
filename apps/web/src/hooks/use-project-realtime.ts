@@ -16,6 +16,7 @@ import { useActiveOrganization, useSession } from "../lib/auth-client";
 import { queryKeys } from "../lib/query-keys";
 import { planRealtimeEvent, type RealtimeCachePlan } from "../lib/realtime-plan";
 import { socket } from "../lib/socket";
+import { useUiStore } from "../stores/ui-store";
 
 /** Applies a validated realtime plan to the TanStack Query cache. */
 function applyPlan(
@@ -102,8 +103,15 @@ export function useProjectRealtime(projectId: string): void {
       handle(planRealtimeEvent(SOCKET_EVENTS.TASK_UPDATED, payload, currentUserId));
     const onTaskMoved = (payload: TaskMovedPayload) =>
       handle(planRealtimeEvent(SOCKET_EVENTS.TASK_MOVED, payload, currentUserId));
-    const onTaskDeleted = (payload: TaskDeletedPayload) =>
-      handle(planRealtimeEvent(SOCKET_EVENTS.TASK_DELETED, payload, currentUserId));
+    const onTaskDeleted = (payload: TaskDeletedPayload) => {
+      const plan = planRealtimeEvent(SOCKET_EVENTS.TASK_DELETED, payload, currentUserId);
+      handle(plan);
+
+      // Closing the drawer also drops the removed task's detail query.
+      if (plan?.kind === "task-removed" && useUiStore.getState().activeTaskId === plan.taskId) {
+        useUiStore.getState().setActiveTaskId(null);
+      }
+    };
     const onCommentAdded = (payload: CommentAddedPayload) =>
       handle(planRealtimeEvent(SOCKET_EVENTS.COMMENT_ADDED, payload, currentUserId));
     const onCommentDeleted = (payload: CommentDeletedPayload) =>

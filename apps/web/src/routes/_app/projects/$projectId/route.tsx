@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import { TaskDrawer } from "../../../../components/task/task-drawer";
+import { useProjectRealtime } from "../../../../hooks/use-project-realtime";
+import { useProjectRoom } from "../../../../hooks/use-project-room";
 import { getProject } from "../../../../lib/api/projects";
 import { ApiError } from "../../../../lib/api-client";
 import { useActiveOrganization } from "../../../../lib/auth-client";
@@ -25,6 +27,10 @@ function ProjectLayout() {
   const activeOrganization = useActiveOrganization();
   const organizationId = activeOrganization.data?.id;
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
+
+  // Join the project room and mirror broadcasts into the query cache.
+  useProjectRoom(projectId);
+  useProjectRealtime(projectId);
 
   // A drawer opened in another project (or on another route) must never leak in.
   useEffect(() => {
