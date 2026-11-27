@@ -192,7 +192,9 @@
         "hint": "JPG, PNG or WebP, up to 2MB.",
         "invalidType": "Only JPG, PNG and WebP images are supported.",
         "tooLarge": "The image must be 2MB or smaller.",
-        "selected": "Selected {{name}}"
+        "selected": "Selected {{name}}",
+        "uploading": "Uploading…",
+        "uploadFailed": "Could not upload the image. Try again."
       },
       "details": "Profile details",
       "name": "Display name",

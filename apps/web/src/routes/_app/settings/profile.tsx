@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { FormTextField } from "../../../components/form/form-text-field";
 import { useZodForm } from "../../../components/form/use-zod-form";
 import { UserAvatar } from "../../../components/user-avatar";
+import { uploadAvatar } from "../../../lib/api/uploads";
 import { authClient, useSession } from "../../../lib/auth-client";
 import { queryKeys } from "../../../lib/query-keys";
 
@@ -33,6 +34,7 @@ function ProfileSettingsPage() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -58,6 +60,10 @@ function ProfileSettingsPage() {
   }, [previewUrl]);
 
   function selectFile(file: File) {
+    if (uploading) {
+      return;
+    }
+
     setSaved(false);
     setSaveError(null);
 
@@ -74,6 +80,26 @@ function ProfileSettingsPage() {
     setAvatarError(null);
     setSelectedName(file.name);
     setPreviewUrl(URL.createObjectURL(file));
+    void uploadFile(file);
+  }
+
+  async function uploadFile(file: File) {
+    setUploading(true);
+
+    try {
+      const publicUrl = await uploadAvatar(file, user?.name);
+
+      // Replace the local blob with the hosted image so it survives a reload.
+      setPreviewUrl(publicUrl);
+      setSelectedName(null);
+      await router.invalidate();
+    } catch {
+      setPreviewUrl(null);
+      setSelectedName(null);
+      setAvatarError(t("settings.profile.avatar.uploadFailed"));
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -131,10 +157,13 @@ function ProfileSettingsPage() {
         <h2 className="font-medium text-sm">{t("settings.profile.avatar.label")}</h2>
 
         <button
+          aria-busy={uploading}
           className={cn(
             "flex w-full cursor-pointer items-center gap-4 rounded-lg border border-dashed p-4 text-left transition-colors",
             dragging ? "border-ring bg-accent/60" : "hover:bg-accent/40",
+            uploading && "cursor-progress opacity-70",
           )}
+          disabled={uploading}
           onClick={() => inputRef.current?.click()}
           onDragLeave={() => setDragging(false)}
           onDragOver={(event) => {
@@ -151,7 +180,11 @@ function ProfileSettingsPage() {
           />
 
           <div className="flex flex-col gap-1">
-            <p className="font-medium text-sm">{t("settings.profile.avatar.drop")}</p>
+            <p className="font-medium text-sm">
+              {uploading
+                ? t("settings.profile.avatar.uploading")
+                : t("settings.profile.avatar.drop")}
+            </p>
             <p className="text-muted-foreground text-xs">{t("settings.profile.avatar.hint")}</p>
             {selectedName ? (
               <p className="text-muted-foreground text-xs">

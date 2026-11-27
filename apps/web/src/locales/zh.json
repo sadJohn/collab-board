@@ -192,7 +192,9 @@
         "hint": "支持 JPG、PNG、WebP，最大 2MB。",
         "invalidType": "仅支持 JPG、PNG、WebP 格式的图片。",
         "tooLarge": "图片大小不能超过 2MB。",
-        "selected": "已选择 {{name}}"
+        "selected": "已选择 {{name}}",
+        "uploading": "上传中…",
+        "uploadFailed": "头像上传失败，请重试。"
       },
       "details": "基本资料",
       "name": "显示名称",
