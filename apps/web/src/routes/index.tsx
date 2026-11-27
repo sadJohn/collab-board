@@ -3,6 +3,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { PublicPageControls } from "../components/public-page-controls";
 import { sessionQueryOptions } from "../lib/session";
 
 /**
@@ -28,6 +29,7 @@ function WelcomePage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-8 px-6 py-16">
+      <PublicPageControls />
       <div className="flex flex-col gap-4">
         <span className="flex w-fit items-center gap-2 rounded-full border px-3 py-1 font-medium text-muted-foreground text-xs">
           <LayoutDashboard className="size-3.5" />

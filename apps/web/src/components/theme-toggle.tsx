@@ -37,7 +37,7 @@ interface ThemeToggleProps {
  * Light / dark / system switcher. Reads and writes the persisted preference in
  * `useUiStore`; DOM application lives in `lib/theme.ts`.
  */
-export function ThemeToggle({ className }: ThemeToggleProps) {
+export function ThemeToggle({ className }: ThemeToggleProps = {}) {
   const { t } = useTranslation();
   const theme = useUiStore((state) => state.theme);
   const setTheme = useUiStore((state) => state.setTheme);

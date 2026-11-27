@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { FormTextField } from "../components/form/form-text-field";
 import { useZodForm } from "../components/form/use-zod-form";
-import { ThemeToggle } from "../components/theme-toggle";
+import { PublicPageControls } from "../components/public-page-controls";
 import { authClient } from "../lib/auth-client";
 
 const resetPasswordSearchSchema = z.object({
@@ -50,7 +50,7 @@ function ResetPasswordPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
-      <ThemeToggle className="fixed top-4 right-4" />
+      <PublicPageControls />
       <div className="rounded-xl border bg-card p-6 shadow-xs">
         <header className="flex flex-col gap-1">
           <h1 className="font-semibold text-2xl tracking-tight">{t("auth.reset.title")}</h1>
