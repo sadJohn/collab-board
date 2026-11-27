@@ -505,6 +505,41 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **验收**：四条命令全绿且零 Biome 报错。
   - **阶段十三完成标准**：邮箱验证与重置/修改密码全流程可用，GitHub OAuth 可完成注册与登录；认证邮件统一经 `MailQueueProducer` 异步入队（无 `REDIS_URL` 时直发）；未验证邮箱的密码账号无法登录；新增页面、提示与校验错误中英双语文案一致；全部测试、类型检查、规范与构建命令通过。
 
+- **第十四阶段（Phase 14）：深色模式（主题切换与全站配色适配）**
+  - **前置技术约定**
+    - **复用现有设计令牌**：`packages/ui/src/styles/theme.css` 已定义 `:root` / `.dark` 语义变量与 `@custom-variant dark`，本阶段只负责"选择主题并把 `.dark` 应用到 `<html>`"，禁止引入第三方主题库，也禁止在组件里维护第二套硬编码色值。
+    - **三态主题**：`light` / `dark` / `system`，默认 `system`（跟随 `prefers-color-scheme`）。偏好仅存 `localStorage`（客户端 UI 状态），不落库、不依赖登录会话，因此 `/login`、`/register`、`/forgot-password`、`/reset-password` 等公开页同样生效。
+    - **单一状态源**：主题偏好写入 `useUiStore`（持久化 key `collab-board.ui`），实际 DOM 操作集中在 `apps/web/src/lib/theme.ts`；组件不得直接读写 `document.documentElement`。
+    - **首屏无闪烁（FOUC）**：由 `index.html` 的内联脚本在样式与应用脚本执行前决定 `.dark`，避免刷新时先亮后暗。
+    - **多语言对齐**：新增入口与提示同步补齐 `zh.json` / `en.json`（两文件 key 必须一致，`resources.test.ts` 会校验）。
+  - **子任务拆解（14.1 – 14.5）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **14.1 主题状态与 DOM 应用（`apps/web`）**
+      - 在 `stores/ui-store.ts` 增加 `theme: ThemePreference` 与 `setTheme`，并纳入 `partialize` 持久化；`ThemePreference = "light" | "dark" | "system"` 与其默认值集中定义，禁止在组件里散落字符串字面量。
+      - 新增 `lib/theme.ts`：
+        - `resolveTheme(preference, prefersDark)`：纯函数，返回 `"light" | "dark"`（`system` 按 `prefersDark` 解析）。
+        - `applyTheme(resolved)`：同步切换 `<html>` 的 `dark` class 与 `style.colorScheme`（`light` / `dark`），保证原生控件与滚动条跟随主题。
+        - `watchSystemTheme(callback)`：`system` 模式下监听 `matchMedia("(prefers-color-scheme: dark)")` 的 `change` 事件，实时重新应用，并返回取消订阅函数。
+      - 应用启动时（`main.tsx` 或根组件，只注册一次）按当前偏好应用主题并挂载系统主题监听；偏好变化时通过 `setTheme` 统一触发应用。
+      - **验收**：为 `resolveTheme`（含 `system` 两个分支）与 `ui-store` 的 `theme` 持久化补充 Vitest 单元测试；手动切换后刷新仍保持所选主题。
+    - **14.2 首屏防闪烁（`apps/web`）**
+      - 在 `index.html` 的 `<head>` 中加入最小内联脚本（位于模块脚本之前）：`try/catch` 读取 `localStorage["collab-board.ui"]` 并解析 `state.theme`；缺失、损坏或为 `system` 时回退 `matchMedia("(prefers-color-scheme: dark)")`；据此为 `<html>` 添加 `dark` class 并设置 `color-scheme`。
+      - 脚本不得引用应用模块，注释中明确它依赖的持久化 key 与 zustand persist 的 JSON 结构，避免与 14.1 的存储格式漂移。
+      - **验收**：在深色偏好下强制刷新，首帧即为深色（无白色闪烁）；清空 localStorage 且系统为深色时同样直接以深色渲染。
+    - **14.3 主题切换入口与文案（`apps/web`）**
+      - 新增 `components/theme-toggle.tsx`：复用 `@repo/ui` 的 `DropdownMenu` + `Button(size="icon", variant="ghost")`，图标随当前偏好显示 `Sun` / `Moon` / `Monitor`；菜单含「浅色 / 深色 / 跟随系统」三项并高亮当前项，提供完整 `aria-label` 与 `title`。
+      - 在 `AppHeader` 的语言切换旁挂载；同时在公开认证页（`/login`、`/register`、`/forgot-password`、`/reset-password`）右上角提供同一入口（可抽取轻量认证页外壳复用），保证未登录时也能切换主题。
+      - 补齐 `theme.label` / `theme.light` / `theme.dark` / `theme.system` 中英文案。
+      - **验收**：任一入口切换后全站即时生效且持久化；深色下当前选中项可辨识；`zh.json` 与 `en.json` key 完全一致。
+    - **14.4 深色配色审计与修复（`apps/web` & `packages/ui`）**
+      - 逐一替换深色下失效的硬编码颜色（已知位置：`components/user-avatar.tsx` 的渐变底色与 `text-white`、`layout/notification-center.tsx` 的角标、`home-page.tsx` 的状态徽标等），统一改用语义 token（`bg-background` / `bg-card` / `bg-muted` / `bg-accent` / `text-foreground` / `text-muted-foreground` / `border-border`），品牌色与状态色补充 `dark:` 变体。
+      - 覆盖场景：看板列与任务卡片、拖拽浮层与占位、命令面板、Dialog / Dropdown / Tooltip、通知角标、邮箱验证横幅、头像上传拖拽区、分析看板 Recharts（网格线、坐标轴、tooltip、图例必须使用 `--chart-*` 与语义色，禁止写死浅色）。
+      - 正文与次要文字对比度需达到 WCAG AA（4.5:1），并留存浅色 / 深色两套截图对照。
+      - **验收**：深色模式下无「白底白字 / 黑底黑字」、无刺眼的大面积纯白；两套主题下核心流程（登录、看板拖拽、命令面板、分析页）均可正常辨识与操作。
+    - **14.5 收尾自检**
+      - 依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+      - **验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十四完成标准**：主题支持浅色 / 深色 / 跟随系统三态，切换即时生效并持久化；首屏无闪烁，未登录页面同样可切换；看板、弹层、命令面板、通知与图表在深色下配色一致且对比度达标；新增文案中英双语对齐；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
