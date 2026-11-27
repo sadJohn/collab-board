@@ -85,6 +85,11 @@
     "enUS": "English"
   },
   "auth": {
+    "github": {
+      "continue": "使用 GitHub 继续",
+      "or": "或",
+      "failed": "GitHub 登录失败，请重试。"
+    },
     "email": "邮箱",
     "password": "密码",
     "signIn": {

@@ -85,6 +85,11 @@
     "enUS": "English"
   },
   "auth": {
+    "github": {
+      "continue": "Continue with GitHub",
+      "or": "or",
+      "failed": "GitHub sign-in failed. Try again."
+    },
     "email": "Email",
     "password": "Password",
     "signIn": {

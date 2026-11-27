@@ -8,6 +8,7 @@ import { authClient } from "../../lib/auth-client";
 import { queryKeys } from "../../lib/query-keys";
 import { FormTextField } from "../form/form-text-field";
 import { useZodForm } from "../form/use-zod-form";
+import { GithubSignInButton } from "./github-sign-in-button";
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -69,6 +70,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       <Button disabled={form.formState.isSubmitting} type="submit">
         {form.formState.isSubmitting ? t("auth.signUp.submitting") : t("auth.signUp.submit")}
       </Button>
+
+      <div className="flex items-center gap-3 text-muted-foreground text-xs">
+        <span className="h-px flex-1 bg-border" />
+        {t("auth.github.or")}
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <GithubSignInButton onError={setFormError} />
     </form>
   );
 }
