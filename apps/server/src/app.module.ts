@@ -6,9 +6,10 @@ import { EventsModule } from "./events/events.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProjectsModule } from "./projects/projects.module";
 import { TasksModule } from "./tasks/tasks.module";
+import { UploadsModule } from "./uploads/uploads.module";
 
 @Module({
-  imports: [PrismaModule, EventsModule, ProjectsModule, TasksModule, CommentsModule],
+  imports: [PrismaModule, EventsModule, ProjectsModule, TasksModule, CommentsModule, UploadsModule],
   controllers: [AppController, AuthController],
 })
 export class AppModule {}
