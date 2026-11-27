@@ -35,16 +35,30 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET,
-  emailAndPassword: { enabled: true },
-  databaseHooks: {
-    user: {
-      create: {
-        // This app has no email-verification flow (email is only used for
-        // invitations), but BetterAuth's organization plugin rejects
-        // `listUserInvitations` for unverified sessions. Treat email/password
-        // sign-ups as verified so the notification inbox can list invitations.
-        before: async (user) => ({ data: { ...user, emailVerified: true } }),
-      },
+  emailAndPassword: {
+    enabled: true,
+    // Password accounts stay locked until the verification link is opened.
+    // GitHub sign-ups arrive already verified from the provider.
+    requireEmailVerification: true,
+    // BetterAuth generates the one-time url (token + callbackURL); forward it
+    // verbatim — reconstructing it here would break the token signature.
+    sendResetPassword: async ({ user, url }) => {
+      await mailQueueProducer.enqueueResetPassword({
+        email: user.email,
+        userName: user.name,
+        url,
+      });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await mailQueueProducer.enqueueVerification({
+        email: user.email,
+        userName: user.name,
+        url,
+      });
     },
   },
   socialProviders: {
