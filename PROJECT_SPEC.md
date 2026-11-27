@@ -540,6 +540,42 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **验收**：四条命令全绿且零 Biome 报错。
   - **阶段十四完成标准**：主题支持浅色 / 深色 / 跟随系统三态，切换即时生效并持久化；首屏无闪烁，未登录页面同样可切换；看板、弹层、命令面板、通知与图表在深色下配色一致且对比度达标；新增文案中英双语对齐；全部测试、类型检查、规范与构建命令通过。
 
+- **修复任务：登录后自动创建并激活默认工作区**
+  - **1. 后端新用户自动创建默认工作区（`apps/server`）**
+    - 在 `apps/server/src/auth/auth.ts` 的 `databaseHooks.user.create.after` 中实现：
+      - 当新用户创建完成后，使用 Prisma 事务自动创建一条 `Organization`（名称如 `\${user.name || 'Personal'}'s Workspace`，`slug` 拼接唯一短随机后缀防冲突）及一条 `Member` 记录（`role: 'owner'`）。
+      - 当前 `Organization.id` 与 `Member.id` 均没有数据库默认值，直接使用 Prisma 创建时必须通过 `randomUUID()` 等方式显式生成两个 ID。
+      - 捕获异常后仅记录日志，不阻断主注册流程；创建失败时由前端的空工作区流程承接，不得承诺 `activeOrganizationId` 绝对 100% 就绪。
+      - 此钩子只负责 User 创建后的工作区初始化，不得在此更新“当前初始 Session”：BetterAuth 的 Session 创建晚于 User，且邮箱验证注册流程可能暂时没有 Session。
+  - **2. 前端自动激活默认工作区兜底（`apps/web`）**
+    - 仅在受保护根布局（或统一的会话初始化钩子）中实现最终兜底，不得在 `/login` 登录成功跳转前再执行一套自动激活逻辑，避免旧缓存触发重复 `setActive` 并覆盖后端恢复的上次工作区。
+    - 必须等待最新 `session` 与 `useListOrganizations()` 均加载成功后再判断，禁止根据加载中、请求失败或旧缓存中的空值执行激活：
+      - **存在工作区**：当用户已登录且最新 `session.session.activeOrganizationId` 仍为空，并且 `organizations.length > 0` 时，才可调用 `authClient.organization.setActive({ organizationId: organizations[0].id })` 作为异常兜底；后端已恢复的非空工作区具有最高优先级，前端不得覆盖。
+      - **不存在工作区**：当组织列表请求成功且 `organizations.length === 0`（如历史测试老账号或默认工作区创建失败）时，引导用户进入创建工作区流程，并展示 `setActive` 失败时的错误与重试入口，避免静默重试形成循环。
+      - **创建成功后**：`organization.create` 默认会激活新组织，刷新 Session 与相关查询缓存即可，无需重复调用 `setActive`。
+      - **防重复执行**：自动激活需增加进行中状态或等效防重入保护，同一会话不得并发发起多次 `setActive`。
+    - **验收**：新注册账号登录后正常进入已激活的默认工作区；已有工作区但 Session 未激活的老账号按后端恢复规则进入工作区；默认工作区创建失败或老账号确实无工作区时进入创建流程；加载中与请求失败不会被误判为“无工作区”。
+
+- **追加任务：跨登录记住用户上次选中的工作区（Last Active Workspace）**
+  - **1. 数据库与 BetterAuth 钩子（`packages/db` & `apps/server`）**
+    - **Schema 扩展**：在 `packages/db/prisma/schema.prisma` 的 `User` 模型中新增 `lastActiveOrganizationId String?`，执行 `db:push` 并重新生成 Prisma Client。
+    - **自动记忆与恢复（`apps/server/src/auth/auth.ts`）**：
+      - **切换时自动记录**：配置 `databaseHooks.session.update.after`，当更新后的 `session.activeOrganizationId` 非空时，幂等同步写入对应用户的 `User.lastActiveOrganizationId`；为空时不得覆盖已有值。当前 BetterAuth 的 `after` 钩子没有旧 Session，不要求在此比较字段是否发生变化。
+      - **新登录自动恢复**：配置 `databaseHooks.session.create.before`，查询该用户的 `lastActiveOrganizationId` 与成员关系：
+        - 若记录存在且经 `Member` 表校验仍是成员，则通过钩子返回值将其设为新 Session 的 `activeOrganizationId`。
+        - 若记录已失效，则按 `Member.createdAt ASC`、`organizationId ASC` 选取最早加入的组织，同时设置 Session 并回写 `lastActiveOrganizationId`。
+        - 若已无任何组织，则清空 `lastActiveOrganizationId` 并保持 Session 的 `activeOrganizationId` 为空。
+      - **新用户注册联动**：在 `databaseHooks.user.create.after` 的同一 Prisma 事务中创建默认工作区、owner 成员并更新 `User.lastActiveOrganizationId`。初始及后续 Session 的激活统一由 `session.create.before` 完成，邮箱验证后自动登录与 GitHub OAuth 登录均不得绕过该恢复逻辑。
+  - **2. 测试与收尾自检**
+    - 后端测试覆盖：有效记录恢复工作区 B；B 已退出或删除时回退最早组织并回写；无组织时清空记录；默认工作区、owner 与 `lastActiveOrganizationId` 同事务创建；空 `activeOrganizationId` 不覆盖已有记录；初始化异常不阻断注册。
+    - 前端测试覆盖：加载中与请求失败不触发激活；后端恢复 B 后前端不得改选 A；确无组织时展示创建流程；自动激活不会并发重复执行。
+    - 分别验证邮箱验证注册与 GitHub OAuth 注册/登录路径，最后依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+  - **3. 验收标准**
+    - 用户在工作区 A 和工作区 B 之间切换到 **工作区 B** 后点击退出登录。
+    - 重新输入账号密码登录（或打开无痕窗口登录同一账号），无需手动切换，直接进入 **工作区 B**，且前端不会将其覆盖为列表中的第一个工作区。
+    - 若用户已不再是 B 的成员，则进入最早加入的有效工作区并更新记忆；若已无任何工作区，则进入创建流程，不出现空白页或无限激活请求。
+
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
