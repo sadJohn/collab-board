@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { FormTextField } from "../components/form/form-text-field";
 import { useZodForm } from "../components/form/use-zod-form";
+import { ThemeToggle } from "../components/theme-toggle";
 import { authClient } from "../lib/auth-client";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -40,6 +41,7 @@ function ForgotPasswordPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
+      <ThemeToggle className="fixed top-4 right-4" />
       <div className="rounded-xl border bg-card p-6 shadow-xs">
         <header className="flex flex-col gap-1">
           <h1 className="font-semibold text-2xl tracking-tight">{t("auth.forgot.title")}</h1>

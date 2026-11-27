@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { RegisterForm } from "../components/auth/register-form";
+import { ThemeToggle } from "../components/theme-toggle";
 import { redirectIfAuthenticated } from "../lib/route-guards";
 
 export const Route = createFileRoute("/register")({
@@ -15,6 +16,7 @@ function RegisterPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
+      <ThemeToggle className="fixed top-4 right-4" />
       <div className="rounded-xl border bg-card p-6 shadow-xs">
         <RegisterForm onSuccess={() => navigate({ to: "/dashboard" })} />
       </div>

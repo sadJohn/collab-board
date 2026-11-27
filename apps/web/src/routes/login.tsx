@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { LoginForm } from "../components/auth/login-form";
+import { ThemeToggle } from "../components/theme-toggle";
 import { redirectIfAuthenticated } from "../lib/route-guards";
 
 const loginSearchSchema = z.object({
@@ -33,6 +34,7 @@ function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
+      <ThemeToggle className="fixed top-4 right-4" />
       <div className="rounded-xl border bg-card p-6 shadow-xs">
         <LoginForm onSuccess={handleSuccess} />
       </div>

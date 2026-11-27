@@ -20,6 +20,7 @@ import {
 } from "../../lib/auth-client";
 import { useUiStore } from "../../stores/ui-store";
 import { LanguageSwitcher } from "../language-switcher";
+import { ThemeToggle } from "../theme-toggle";
 import { UserAvatar } from "../user-avatar";
 import { NotificationCenter } from "./notification-center";
 
@@ -95,6 +96,7 @@ export function AppHeader() {
 
         <div className="flex items-center gap-2">
           <NotificationCenter />
+          <ThemeToggle />
           <LanguageSwitcher />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

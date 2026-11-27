@@ -84,6 +84,12 @@
     "zhCN": "中文",
     "enUS": "English"
   },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "auth": {
     "github": {
       "continue": "Continue with GitHub",
