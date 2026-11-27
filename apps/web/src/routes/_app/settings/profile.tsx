@@ -1,6 +1,8 @@
 import {
   AVATAR_ALLOWED_CONTENT_TYPES,
   AVATAR_MAX_FILE_SIZE,
+  type ChangePasswordInput,
+  changePasswordSchema,
   type UpdateProfileInput,
   updateProfileSchema,
 } from "@repo/shared";
@@ -38,10 +40,22 @@ function ProfileSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [securitySaving, setSecuritySaving] = useState(false);
+  const [securitySaved, setSecuritySaved] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useZodForm<UpdateProfileInput>(updateProfileSchema, {
     defaultValues: { name: user?.name ?? "" },
+  });
+
+  const securityForm = useZodForm<ChangePasswordInput>(changePasswordSchema, {
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      revokeOtherSessions: true,
+    },
   });
 
   useEffect(() => {
@@ -146,6 +160,39 @@ function ProfileSettingsPage() {
     }
   }
 
+  async function onChangePassword(values: ChangePasswordInput) {
+    setSecuritySaving(true);
+    setSecuritySaved(false);
+    setSecurityError(null);
+
+    const { error } = await authClient.changePassword({
+      currentPassword: values.currentPassword,
+      newPassword: values.newPassword,
+      revokeOtherSessions: values.revokeOtherSessions,
+    });
+
+    setSecuritySaving(false);
+
+    if (error) {
+      // BetterAuth reports a wrong current password as 400/401; keep other
+      // failures generic so the form never leaks internal details.
+      setSecurityError(
+        error.status === 400 || error.status === 401
+          ? t("settings.security.invalidCurrent")
+          : t("settings.security.failed"),
+      );
+      return;
+    }
+
+    securityForm.reset({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      revokeOtherSessions: values.revokeOtherSessions,
+    });
+    setSecuritySaved(true);
+  }
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -230,6 +277,66 @@ function ProfileSettingsPage() {
         <div className="flex justify-end">
           <Button disabled={saving} type="submit">
             {saving ? t("settings.profile.saving") : t("settings.profile.save")}
+          </Button>
+        </div>
+      </form>
+
+      <form
+        className="flex flex-col gap-4 rounded-xl border bg-card p-5"
+        noValidate
+        onSubmit={securityForm.handleSubmit(onChangePassword)}
+      >
+        <div className="flex flex-col gap-1">
+          <h2 className="font-medium text-sm">{t("settings.security.title")}</h2>
+          <p className="text-muted-foreground text-xs">{t("settings.security.subtitle")}</p>
+        </div>
+
+        <FormTextField
+          autoComplete="current-password"
+          form={securityForm}
+          label={t("settings.security.currentPassword")}
+          name="currentPassword"
+          type="password"
+        />
+        <FormTextField
+          autoComplete="new-password"
+          form={securityForm}
+          label={t("settings.security.newPassword")}
+          name="newPassword"
+          type="password"
+        />
+        <FormTextField
+          autoComplete="new-password"
+          form={securityForm}
+          label={t("settings.security.confirmPassword")}
+          name="confirmPassword"
+          type="password"
+        />
+
+        <label className="flex items-center gap-2 text-sm" htmlFor="revokeOtherSessions">
+          <input
+            className="size-4 accent-foreground"
+            id="revokeOtherSessions"
+            type="checkbox"
+            {...securityForm.register("revokeOtherSessions")}
+          />
+          {t("settings.security.revokeOtherSessions")}
+        </label>
+
+        {securityError ? (
+          <p className="text-destructive text-sm" role="alert">
+            {securityError}
+          </p>
+        ) : null}
+        {securitySaved ? (
+          <p className="text-muted-foreground text-sm" role="status">
+            {t("settings.security.saved")}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end">
+          <Button disabled={securitySaving} type="submit">
+            {securitySaving ? t("settings.security.submitting") : t("settings.security.submit")}
           </Button>
         </div>
       </form>

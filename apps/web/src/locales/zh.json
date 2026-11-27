@@ -306,6 +306,19 @@
       "saving": "保存中…",
       "saved": "已保存。",
       "saveFailed": "保存失败，请重试。"
+    },
+    "security": {
+      "title": "账户安全",
+      "subtitle": "修改密码后，可以选择让其他设备上的登录立即失效。",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码",
+      "revokeOtherSessions": "同时退出其他设备上的登录",
+      "submit": "更新密码",
+      "submitting": "更新中…",
+      "saved": "密码已更新。",
+      "invalidCurrent": "当前密码不正确。",
+      "failed": "密码更新失败，请稍后重试。"
     }
   },
   "notFound": {

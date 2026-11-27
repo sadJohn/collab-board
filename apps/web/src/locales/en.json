@@ -306,6 +306,19 @@
       "saving": "Saving…",
       "saved": "Saved.",
       "saveFailed": "Could not save your profile. Try again."
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "After changing your password, you can sign out other devices.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "revokeOtherSessions": "Sign out of other sessions",
+      "submit": "Update password",
+      "submitting": "Updating…",
+      "saved": "Password updated.",
+      "invalidCurrent": "Current password is incorrect.",
+      "failed": "Could not update the password. Try again."
     }
   },
   "notFound": {
