@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppWorkspaceRouteImport } from './routes/_app/workspace'
+import { Route as AcceptInvitationInvitationIdRouteImport } from './routes/accept-invitation.$invitationId'
 import { Route as AppProjectsIndexRouteImport } from './routes/_app/projects/index'
 import { Route as AppProjectsProjectIdRouteRouteImport } from './routes/_app/projects/$projectId/route'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings/profile'
@@ -51,6 +52,12 @@ const AppWorkspaceRoute = AppWorkspaceRouteImport.update({
   path: '/workspace',
   getParentRoute: () => AppRoute,
 } as any)
+const AcceptInvitationInvitationIdRoute =
+  AcceptInvitationInvitationIdRouteImport.update({
+    id: '/accept-invitation/$invitationId',
+    path: '/accept-invitation/$invitationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/home': typeof AppHomeRoute
   '/workspace': typeof AppWorkspaceRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRouteRouteWithChildren
   '/settings/profile': typeof AppSettingsProfileRoute
   '/projects/': typeof AppProjectsIndexRoute
@@ -105,6 +113,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/home': typeof AppHomeRoute
   '/workspace': typeof AppWorkspaceRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/projects': typeof AppProjectsIndexRoute
   '/projects/$projectId/board': typeof AppProjectsProjectIdBoardRoute
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/workspace': typeof AppWorkspaceRoute
+  '/accept-invitation/$invitationId': typeof AcceptInvitationInvitationIdRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRouteRouteWithChildren
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/projects/': typeof AppProjectsIndexRoute
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/home'
     | '/workspace'
+    | '/accept-invitation/$invitationId'
     | '/projects/$projectId'
     | '/settings/profile'
     | '/projects/'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/home'
     | '/workspace'
+    | '/accept-invitation/$invitationId'
     | '/settings/profile'
     | '/projects'
     | '/projects/$projectId/board'
@@ -160,6 +172,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/_app/home'
     | '/_app/workspace'
+    | '/accept-invitation/$invitationId'
     | '/_app/projects/$projectId'
     | '/_app/settings/profile'
     | '/_app/projects/'
@@ -173,6 +186,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  AcceptInvitationInvitationIdRoute: typeof AcceptInvitationInvitationIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -218,6 +232,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspace'
       preLoaderRoute: typeof AppWorkspaceRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/accept-invitation/$invitationId': {
+      id: '/accept-invitation/$invitationId'
+      path: '/accept-invitation/$invitationId'
+      fullPath: '/accept-invitation/$invitationId'
+      preLoaderRoute: typeof AcceptInvitationInvitationIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/projects/': {
       id: '/_app/projects/'
@@ -305,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  AcceptInvitationInvitationIdRoute: AcceptInvitationInvitationIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

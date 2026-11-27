@@ -238,5 +238,31 @@
       "boardView": "看板视图",
       "listView": "列表视图"
     }
+  },
+  "invitation": {
+    "title": "工作区邀请",
+    "loading": "加载邀请中…",
+    "loadFailed": "邀请加载失败。",
+    "loginRequired": "请先登录或注册，再接受该邀请。",
+    "login": "去登录",
+    "register": "创建账号",
+    "invitedTo": "{{inviter}} 邀请你加入 {{organization}}。",
+    "role": "角色：{{role}}",
+    "expiresAt": "邀请有效期至 {{date}}。",
+    "accept": "接受邀请",
+    "accepting": "接受中…",
+    "reject": "拒绝",
+    "rejecting": "拒绝中…",
+    "acceptFailed": "接受邀请失败，请稍后重试。",
+    "rejectFailed": "拒绝邀请失败，请稍后重试。",
+    "rejected": "已拒绝该邀请。",
+    "notPending": "该邀请已被处理或已过期。",
+    "invalid": "邀请不存在或链接无效。",
+    "backHome": "返回首页",
+    "roles": {
+      "member": "成员",
+      "admin": "管理员",
+      "owner": "所有者"
+    }
   }
 }

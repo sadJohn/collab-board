@@ -238,5 +238,31 @@
       "boardView": "Board view",
       "listView": "List view"
     }
+  },
+  "invitation": {
+    "title": "Workspace invitation",
+    "loading": "Loading invitation…",
+    "loadFailed": "Could not load the invitation.",
+    "loginRequired": "Sign in or create an account to accept this invitation.",
+    "login": "Sign in",
+    "register": "Create account",
+    "invitedTo": "{{inviter}} invited you to join {{organization}}.",
+    "role": "Role: {{role}}",
+    "expiresAt": "This invitation expires on {{date}}.",
+    "accept": "Accept invitation",
+    "accepting": "Accepting…",
+    "reject": "Decline",
+    "rejecting": "Declining…",
+    "acceptFailed": "Could not accept the invitation. Try again.",
+    "rejectFailed": "Could not decline the invitation. Try again.",
+    "rejected": "The invitation was declined.",
+    "notPending": "This invitation has already been handled or has expired.",
+    "invalid": "This invitation does not exist or the link is invalid.",
+    "backHome": "Back to home",
+    "roles": {
+      "member": "Member",
+      "admin": "Admin",
+      "owner": "Owner"
+    }
   }
 }
