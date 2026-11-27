@@ -1,5 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { EventsService } from "./events.service";
+import { ProjectsGateway } from "./projects.gateway";
 
 /**
  * Global so business modules (tasks, comments) can inject `EventsService`
@@ -7,7 +8,7 @@ import { EventsService } from "./events.service";
  */
 @Global()
 @Module({
-  providers: [EventsService],
+  providers: [EventsService, ProjectsGateway],
   exports: [EventsService],
 })
 export class EventsModule {}
