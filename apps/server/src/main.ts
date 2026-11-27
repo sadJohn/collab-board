@@ -5,11 +5,13 @@ import { NodeAdapter } from "@nestjs/platform-node";
 import { toNodeHandler } from "better-auth/node";
 import { AppModule } from "./app.module";
 import { auth } from "./auth/auth";
+import { RedisIoAdapter } from "./redis/redis-io.adapter";
 
 async function bootstrap(): Promise<void> {
   // BetterAuth must read the raw request stream itself, so the global body
   // parser is disabled here and re-registered after the auth handler below.
   const app = await NestFactory.create(AppModule, new NodeAdapter(), { bodyParser: false });
+  app.enableShutdownHooks();
 
   const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:5173";
   app.enableCors({ origin: corsOrigin, credentials: true });
@@ -18,6 +20,12 @@ async function bootstrap(): Promise<void> {
 
   app.useBodyParser("json");
   app.useBodyParser("urlencoded");
+
+  // Redis pub/sub adapter enables multi-instance broadcasts / presence; it
+  // stays on the in-memory adapter when REDIS_URL is empty.
+  const wsAdapter = new RedisIoAdapter(app);
+  wsAdapter.connectToRedis();
+  app.useWebSocketAdapter(wsAdapter);
 
   const port = Number(process.env.SERVER_PORT ?? 3000);
   await app.listen(port);
