@@ -27,7 +27,13 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
     // BetterAuth requires a display name; derive it until profile editing exists.
     const name = values.email.split("@")[0] ?? values.email;
-    const { error } = await authClient.signUp.email({ ...values, name });
+    const { error } = await authClient.signUp.email({
+      ...values,
+      name,
+      // Verification emails sent on sign-up land back on the protected home
+      // page (BetterAuth defaults to "/" on the API origin otherwise).
+      callbackURL: `${window.location.origin}/home`,
+    });
 
     if (error) {
       setFormError(error.message || t("auth.signUp.failed"));

@@ -113,6 +113,7 @@ describe("RegisterForm", () => {
       email: "ada@example.com",
       password: "12345678",
       name: "ada",
+      callbackURL: `${window.location.origin}/home`,
     });
     expect(queryClient.getQueryData(queryKeys.session)).toBeUndefined();
   });
