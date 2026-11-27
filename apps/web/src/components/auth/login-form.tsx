@@ -1,9 +1,11 @@
 import { type SignInInput, signInSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { authClient } from "../../lib/auth-client";
+import { queryKeys } from "../../lib/query-keys";
 import { FormTextField } from "../form/form-text-field";
 import { useZodForm } from "../form/use-zod-form";
 
@@ -13,6 +15,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(signInSchema, {
     defaultValues: { email: "", password: "" },
@@ -28,6 +31,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       return;
     }
 
+    // Drop the anonymous session cached by the guard so the next navigation
+    // fetches the freshly issued session instead of bouncing back to /login.
+    queryClient.removeQueries({ queryKey: queryKeys.session });
     onSuccess();
   }
 

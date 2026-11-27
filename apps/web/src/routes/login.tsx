@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
@@ -19,11 +19,12 @@ function LoginPage() {
   const { t } = useTranslation();
   const { redirect: redirectTo } = Route.useSearch();
   const navigate = useNavigate();
-  const router = useRouter();
 
   function handleSuccess() {
     if (redirectTo) {
-      router.history.push(redirectTo);
+      // `redirectTo` is an internal href captured by the route guard; pushing it
+      // through the router (history.push bypasses router state) is required.
+      navigate({ href: redirectTo, replace: true });
       return;
     }
 

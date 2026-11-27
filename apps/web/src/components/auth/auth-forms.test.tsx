@@ -1,6 +1,9 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { authClient } from "../../lib/auth-client";
+import { queryKeys } from "../../lib/query-keys";
 import i18n from "../../locales/i18n";
 import { LoginForm } from "./login-form";
 import { RegisterForm } from "./register-form";
@@ -23,18 +26,31 @@ function fillCredentials(email: string, password: string) {
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: password } });
 }
 
+let queryClient: QueryClient;
+
+/**
+ * The guard caches an anonymous session, so successful auth must drop that
+ * entry before the caller navigates or the guard bounces back to /login.
+ */
+function renderWithSessionCache(ui: ReactNode) {
+  queryClient.setQueryData(queryKeys.session, null);
+
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 beforeAll(async () => {
   await i18n.changeLanguage("en-US");
 });
 
 beforeEach(() => {
+  queryClient = new QueryClient();
   signInEmail.mockReset();
   signUpEmail.mockReset();
 });
 
 describe("LoginForm", () => {
   it("shows the field error without calling the API when the email is invalid", async () => {
-    render(<LoginForm onSuccess={vi.fn()} />);
+    renderWithSessionCache(<LoginForm onSuccess={vi.fn()} />);
 
     fillCredentials("not-an-email", "secret");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
@@ -48,7 +64,7 @@ describe("LoginForm", () => {
   it("submits valid credentials and notifies the caller", async () => {
     signInEmail.mockResolvedValue({ data: null, error: null } as unknown as SignInResult);
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} />);
+    renderWithSessionCache(<LoginForm onSuccess={onSuccess} />);
 
     fillCredentials("ada@example.com", "secret");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
@@ -60,6 +76,7 @@ describe("LoginForm", () => {
       email: "ada@example.com",
       password: "secret",
     });
+    expect(queryClient.getQueryData(queryKeys.session)).toBeUndefined();
   });
 
   it("renders the server error message", async () => {
@@ -68,7 +85,7 @@ describe("LoginForm", () => {
       error: { message: "Invalid email or password", status: 401, statusText: "Unauthorized" },
     } as unknown as SignInResult);
     const onSuccess = vi.fn();
-    render(<LoginForm onSuccess={onSuccess} />);
+    renderWithSessionCache(<LoginForm onSuccess={onSuccess} />);
 
     fillCredentials("ada@example.com", "wrong-password");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
@@ -84,7 +101,7 @@ describe("RegisterForm", () => {
   it("derives a display name and signs the user up", async () => {
     signUpEmail.mockResolvedValue({ data: null, error: null } as unknown as SignUpResult);
     const onSuccess = vi.fn();
-    render(<RegisterForm onSuccess={onSuccess} />);
+    renderWithSessionCache(<RegisterForm onSuccess={onSuccess} />);
 
     fillCredentials("ada@example.com", "12345678");
     fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
@@ -97,10 +114,11 @@ describe("RegisterForm", () => {
       password: "12345678",
       name: "ada",
     });
+    expect(queryClient.getQueryData(queryKeys.session)).toBeUndefined();
   });
 
   it("rejects a password shorter than 8 characters", async () => {
-    render(<RegisterForm onSuccess={vi.fn()} />);
+    renderWithSessionCache(<RegisterForm onSuccess={vi.fn()} />);
 
     fillCredentials("ada@example.com", "short");
     fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
