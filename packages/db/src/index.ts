@@ -32,6 +32,7 @@ export {
   type Comment,
   type Invitation,
   type Member,
+  type Notification,
   type Organization,
   Prisma,
   PrismaClient,
@@ -41,4 +42,4 @@ export {
   type User,
   type Verification,
 } from "./generated/prisma/client.js";
-export { TaskPriority, TaskStatus } from "./generated/prisma/enums.js";
+export { NotificationType, TaskPriority, TaskStatus } from "./generated/prisma/enums.js";

@@ -31,6 +31,11 @@ enum TaskPriority {
   URGENT
 }
 
+enum NotificationType {
+  TASK_ASSIGNED
+  COMMENT_ADDED
+}
+
 // ---------------------------------------------------------------------------
 // BetterAuth models (email/password + OAuth + organization plugin)
 // Model names are kept in PascalCase while tables stay snake_case/lowercase,
@@ -53,6 +58,7 @@ model User {
   createdTasks    Task[]       @relation("TaskCreator")
   assignedTasks   Task[]       @relation("TaskAssignee")
   comments        Comment[]
+  notifications   Notification[]
 
   @@map("user")
 }
@@ -213,4 +219,21 @@ model Comment {
 
   @@index([taskId, createdAt])
   @@map("comment")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  // Structured context stored as JSON: { taskId, taskTitle, projectId,
+  // organizationId, actorName, commentSnippet? }. Keeps a single table while
+  // staying easy to extend with new notification kinds.
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notification")
 }
