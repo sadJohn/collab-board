@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
+
 import { OnlinePresenceAvatars } from "../../../../components/presence/online-presence-avatars";
 import { TaskDrawer } from "../../../../components/task/task-drawer";
 import { useProjectPresence } from "../../../../hooks/use-project-presence";
@@ -14,7 +16,17 @@ import { queryKeys } from "../../../../lib/query-keys";
 import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
 import { useUiStore } from "../../../../stores/ui-store";
 
+/**
+ * Optional `task` search param lets deep links (e.g. notification clicks) open
+ * the task detail drawer straight from the URL. Declared on the layout so both
+ * the board and list tabs honor it.
+ */
+const projectRouteSearchSchema = z.object({
+  task: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_app/projects/$projectId")({
+  validateSearch: projectRouteSearchSchema,
   component: ProjectLayout,
 });
 
@@ -24,6 +36,7 @@ const ACTIVE_TAB_CLASS = "rounded-md bg-accent px-3 py-2 font-medium text-foregr
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
+  const { task } = Route.useSearch();
   const { t } = useTranslation();
   const activeOrganization = useActiveOrganization();
   const organizationId = activeOrganization.data?.id;
@@ -35,14 +48,19 @@ function ProjectLayout() {
   useProjectRealtime(projectId);
   const presenceUsers = useProjectPresence(projectId);
 
-  // A drawer opened in another project (or on another route) must never leak in.
+  // Open the task drawer from the `?task=` deep link (e.g. a notification
+  // click), or clear it when absent. Re-running on projectId change — and the
+  // cleanup on unmount — keeps a drawer opened in another project/route from
+  // leaking in.
   useEffect(() => {
-    if (projectId) {
-      setActiveTaskId(null);
+    if (!projectId) {
+      return;
     }
 
+    setActiveTaskId(task ?? null);
+
     return () => setActiveTaskId(null);
-  }, [projectId, setActiveTaskId]);
+  }, [projectId, task, setActiveTaskId]);
 
   const projectQuery = useQuery({
     queryKey: queryKeys.projects.detail(organizationId ?? "", projectId),

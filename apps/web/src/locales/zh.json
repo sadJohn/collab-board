@@ -291,6 +291,13 @@
       "rejecting": "拒绝中…",
       "acceptFailed": "接受邀请失败，请重试。",
       "rejectFailed": "拒绝邀请失败，请重试。"
-    }
+    },
+    "business": {
+      "TASK_ASSIGNED": "{{actor}} 指派了任务给你",
+      "COMMENT_ADDED": "{{actor}} 评论了任务",
+      "switchFailed": "切换工作区失败，请重试。"
+    },
+    "markAllRead": "全部标为已读",
+    "markAllReadFailed": "标记已读失败，请重试。"
   }
 }

@@ -82,4 +82,7 @@ export const queryKeys = {
     list: (organizationId: string) => ["organizations", organizationId, "invitations"] as const,
     received: ["invitations", "received"] as const,
   },
+  notifications: {
+    list: ["notifications"] as const,
+  },
 } as const;

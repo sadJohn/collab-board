@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
+import { useNotificationRealtime } from "../hooks/use-notification-realtime";
 import { requireSession } from "../lib/route-guards";
 import { useUiStore } from "../stores/ui-store";
 
@@ -17,6 +18,7 @@ function AppLayout() {
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
 
   useGlobalShortcuts();
+  useNotificationRealtime();
 
   return (
     <div className="min-h-dvh bg-background text-foreground">

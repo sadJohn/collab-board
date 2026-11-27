@@ -2,26 +2,45 @@ import { Button, Popover, PopoverContent, PopoverTrigger } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useNotifications } from "../../hooks/use-notifications";
-import { authClient } from "../../lib/auth-client";
-import type { AppNotification, WorkspaceInvitationNotification } from "../../lib/notifications";
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+} from "../../hooks/use-notifications";
+import { authClient, useActiveOrganization } from "../../lib/auth-client";
+import type {
+  AppNotification,
+  BusinessNotification,
+  WorkspaceInvitationNotification,
+} from "../../lib/notifications";
+import { queryClient as globalQueryClient } from "../../lib/query-client";
 import { queryKeys } from "../../lib/query-keys";
+import { sessionQueryOptions } from "../../lib/session";
 
 /**
  * Header inbox. Every notification type renders through its own branch, so new
  * business notifications can be added without touching the existing cards.
  */
 export function NotificationCenter() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const router = useRouter();
   const navigate = useNavigate();
-  const { notifications, unreadCount, isLoading, isError } = useNotifications();
+  const activeOrganization = useActiveOrganization();
+  const { notifications, unreadCount, businessUnread, isLoading, isError } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const timeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "short" }),
+    [i18n.language],
+  );
 
   async function handleAccept(notification: WorkspaceInvitationNotification) {
     setActionError(null);
@@ -63,6 +82,44 @@ export function NotificationCenter() {
     setBusyId(null);
   }
 
+  /**
+   * Clicking a business notification marks it read, switches workspace if the
+   * task lives in another organization, then opens the task drawer on the
+   * project board via the `?task=` deep link.
+   */
+  async function handleBusinessClick(notification: BusinessNotification) {
+    setActionError(null);
+    const { projectId, taskId, organizationId } = notification.payload;
+
+    // Optimistic cache update; the request itself must not block navigation.
+    markRead.mutate(notification.id);
+
+    const activeOrg = activeOrganization.data?.id;
+    if (activeOrg && activeOrg !== organizationId) {
+      const { error } = await authClient.organization.setActive({ organizationId });
+      if (error) {
+        setActionError(error.message || t("notifications.business.switchFailed"));
+        return;
+      }
+      await globalQueryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey });
+    }
+
+    await navigate({
+      to: "/projects/$projectId/board",
+      params: { projectId },
+      search: { task: taskId },
+    });
+  }
+
+  async function handleMarkAllRead() {
+    setActionError(null);
+    try {
+      await markAllRead.mutateAsync();
+    } catch {
+      setActionError(t("notifications.markAllReadFailed"));
+    }
+  }
+
   function renderNotification(notification: AppNotification) {
     switch (notification.type) {
       case "WORKSPACE_INVITATION":
@@ -102,6 +159,46 @@ export function NotificationCenter() {
             </div>
           </li>
         );
+
+      case "BUSINESS": {
+        const unread = !notification.read;
+        return (
+          <li key={notification.id}>
+            <button
+              className="flex w-full items-start gap-2 rounded-md border p-3 text-left transition-colors hover:bg-accent disabled:opacity-60"
+              disabled={busyId !== null}
+              onClick={() => void handleBusinessClick(notification)}
+              type="button"
+            >
+              <span
+                aria-hidden
+                className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                  unread ? "bg-primary" : "bg-transparent"
+                }`}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-sm">
+                  {notification.payload.taskTitle}
+                </span>
+                <span className="block text-muted-foreground text-xs">
+                  {t(`notifications.business.${notification.notificationType}`, {
+                    actor: notification.payload.actorName,
+                  })}
+                </span>
+                {notification.payload.commentSnippet ? (
+                  <span className="mt-0.5 block line-clamp-2 text-muted-foreground text-xs">
+                    {notification.payload.commentSnippet}
+                  </span>
+                ) : null}
+                <span className="mt-1 block text-muted-foreground text-[10px]">
+                  {timeFormatter.format(new Date(notification.createdAt))}
+                </span>
+              </span>
+            </button>
+          </li>
+        );
+      }
+
       default:
         return null;
     }
@@ -125,11 +222,24 @@ export function NotificationCenter() {
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex flex-col gap-0.5 border-b px-4 py-3">
-          <p className="font-medium text-sm">{t("notifications.title")}</p>
-          <p className="text-muted-foreground text-xs">
-            {t("notifications.unread", { count: unreadCount })}
-          </p>
+        <div className="flex items-start justify-between gap-2 border-b px-4 py-3">
+          <div className="flex flex-col gap-0.5">
+            <p className="font-medium text-sm">{t("notifications.title")}</p>
+            <p className="text-muted-foreground text-xs">
+              {t("notifications.unread", { count: unreadCount })}
+            </p>
+          </div>
+          {businessUnread > 0 ? (
+            <Button
+              disabled={markAllRead.isPending}
+              onClick={() => void handleMarkAllRead()}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {t("notifications.markAllRead")}
+            </Button>
+          ) : null}
         </div>
 
         <div className="max-h-80 overflow-y-auto p-2">

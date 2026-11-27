@@ -291,6 +291,13 @@
       "rejecting": "Declining…",
       "acceptFailed": "Could not accept the invitation. Try again.",
       "rejectFailed": "Could not decline the invitation. Try again."
-    }
+    },
+    "business": {
+      "TASK_ASSIGNED": "{{actor}} assigned you a task",
+      "COMMENT_ADDED": "{{actor}} commented on a task",
+      "switchFailed": "Could not switch to that workspace. Try again."
+    },
+    "markAllRead": "Mark all read",
+    "markAllReadFailed": "Could not mark notifications as read."
   }
 }

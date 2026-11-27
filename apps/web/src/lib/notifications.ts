@@ -1,3 +1,5 @@
+import type { NotificationDto, NotificationType } from "@repo/shared";
+
 /** The invitation shape returned by `organization.listUserInvitations()`. */
 export interface ReceivedInvitation {
   id: string;
@@ -23,11 +25,27 @@ export interface WorkspaceInvitationNotification {
 }
 
 /**
+ * A persisted business notification (task assignment, comment, …).
+ *
+ * `notificationType` carries the server-side enum while `type` keeps the union
+ * discriminator clean; `payload` holds everything the card needs to render and
+ * deep-link without a follow-up query.
+ */
+export interface BusinessNotification {
+  type: "BUSINESS";
+  id: string;
+  notificationType: NotificationType;
+  read: boolean;
+  createdAt: string;
+  payload: NotificationDto["payload"];
+}
+
+/**
  * Discriminated union of every in-app notification. New business notifications
  * only need a new member here plus a branch in `<NotificationCenter />` — no
  * existing card changes.
  */
-export type AppNotification = WorkspaceInvitationNotification;
+export type AppNotification = WorkspaceInvitationNotification | BusinessNotification;
 
 function toIsoString(value: string | Date): string {
   return new Date(value).toISOString();
@@ -50,5 +68,17 @@ export function toAppNotification(invitation: ReceivedInvitation): AppNotificati
       organizationName: invitation.organizationName,
       expiresAt: toIsoString(invitation.expiresAt),
     },
+  };
+}
+
+/** Maps a persisted notification DTO into the unified notification shape. */
+export function toBusinessNotification(dto: NotificationDto): BusinessNotification {
+  return {
+    type: "BUSINESS",
+    id: dto.id,
+    notificationType: dto.type,
+    read: dto.readAt !== null,
+    createdAt: dto.createdAt,
+    payload: dto.payload,
   };
 }
