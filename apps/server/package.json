@@ -23,6 +23,7 @@
     "better-auth": "^1.7.28",
     "dotenv": "^18.0.10",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.40.0",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.4",
     "zod": "^4.6.7"
