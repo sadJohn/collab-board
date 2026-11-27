@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui";
+import { Button, TooltipProvider } from "@repo/ui";
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
@@ -26,7 +26,9 @@ function RootLayout() {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
-        <Outlet />
+        <TooltipProvider delayDuration={150}>
+          <Outlet />
+        </TooltipProvider>
       </QueryClientProvider>
     </I18nextProvider>
   );

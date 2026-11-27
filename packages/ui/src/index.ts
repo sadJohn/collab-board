@@ -21,4 +21,5 @@ export {
 } from "./components/dropdown-menu";
 export { Input } from "./components/input";
 export { Textarea } from "./components/textarea";
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/tooltip";
 export { cn } from "./lib/utils";

@@ -213,5 +213,11 @@
     "title": "Something went wrong",
     "description": "The page failed to load. Please try again.",
     "retry": "Try again"
+  },
+  "presence": {
+    "online": "Online",
+    "you": "You",
+    "count": "{{count}} online",
+    "andMore": "+{{count}}"
   }
 }

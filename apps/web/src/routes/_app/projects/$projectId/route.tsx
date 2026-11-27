@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
+import { OnlinePresenceAvatars } from "../../../../components/presence/online-presence-avatars";
 import { TaskDrawer } from "../../../../components/task/task-drawer";
+import { useProjectPresence } from "../../../../hooks/use-project-presence";
 import { useProjectRealtime } from "../../../../hooks/use-project-realtime";
 import { useProjectRoom } from "../../../../hooks/use-project-room";
 import { getProject } from "../../../../lib/api/projects";
 import { ApiError } from "../../../../lib/api-client";
-import { useActiveOrganization } from "../../../../lib/auth-client";
+import { useActiveOrganization, useSession } from "../../../../lib/auth-client";
 import { queryKeys } from "../../../../lib/query-keys";
 import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
 import { useUiStore } from "../../../../stores/ui-store";
@@ -26,11 +27,13 @@ function ProjectLayout() {
   const { t } = useTranslation();
   const activeOrganization = useActiveOrganization();
   const organizationId = activeOrganization.data?.id;
+  const currentUserId = useSession().data?.user.id;
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
 
   // Join the project room and mirror broadcasts into the query cache.
   useProjectRoom(projectId);
   useProjectRealtime(projectId);
+  const presenceUsers = useProjectPresence(projectId);
 
   // A drawer opened in another project (or on another route) must never leak in.
   useEffect(() => {
@@ -103,6 +106,9 @@ function ProjectLayout() {
             {project.key}
           </span>
           <h1 className="font-semibold text-2xl tracking-tight">{project.name}</h1>
+          <div className="ml-auto">
+            <OnlinePresenceAvatars users={presenceUsers} currentUserId={currentUserId} />
+          </div>
         </div>
 
         {project.description ? (

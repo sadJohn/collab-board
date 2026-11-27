@@ -213,5 +213,11 @@
     "title": "出错了",
     "description": "页面加载时发生错误，请稍后重试。",
     "retry": "重试"
+  },
+  "presence": {
+    "online": "在线",
+    "you": "我",
+    "count": "{{count}} 人在线",
+    "andMore": "+{{count}}"
   }
 }
