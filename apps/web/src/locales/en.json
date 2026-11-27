@@ -50,6 +50,19 @@
     "activity": {
       "title": "Recent activity",
       "empty": "No new activity yet."
+    },
+    "charts": {
+      "statusTitle": "Task status distribution",
+      "statusSubtitle": "All tasks in the active workspace",
+      "trendTitle": "Task trend, last 7 days",
+      "trendSubtitle": "Bucketed by Asia/Shanghai calendar days",
+      "created": "Created",
+      "completed": "Completed",
+      "total": "Total tasks",
+      "empty": "No task data yet",
+      "emptyHint": "Create tasks and move them across the board to see distribution and trends here.",
+      "count": "{{count}} tasks",
+      "percent": "{{percent}}% of total"
     }
   },
   "taskStatus": {

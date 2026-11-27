@@ -320,6 +320,9 @@ importers:
       react-i18next:
         specifier: ^18.0.3
         version: 18.0.3(@types/react@19.3.3)(i18next@27.2.9(typescript@7.0.2))(react@19.3.1)(typescript@7.0.2)
+      recharts:
+        specifier: ^2.15.4
+        version: 2.15.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       socket.io-client:
         specifier: ^4.8.4
         version: 4.8.4(supports-color@8.1.1)

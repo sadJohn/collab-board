@@ -34,6 +34,7 @@ import { useActiveOrganization, useSession } from "../lib/auth-client";
 import type { BusinessNotification } from "../lib/notifications";
 import { queryKeys } from "../lib/query-keys";
 import { useUiStore } from "../stores/ui-store";
+import { DashboardCharts } from "./dashboard/dashboard-charts";
 import { CreateProjectDialog } from "./project/create-project-dialog";
 
 const STATUS_BADGE: Record<TaskStatus, string> = {
@@ -377,6 +378,11 @@ export function DashboardPage() {
           )}
         </motion.section>
       </div>
+
+      <DashboardCharts
+        statusDistribution={dashboard.statusDistribution}
+        weeklyTrend={dashboard.weeklyTrend}
+      />
 
       <motion.section
         animate={{ opacity: 1, y: 0 }}

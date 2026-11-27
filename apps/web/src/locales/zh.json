@@ -50,6 +50,19 @@
     "activity": {
       "title": "最近动态",
       "empty": "暂时没有新动态。"
+    },
+    "charts": {
+      "statusTitle": "任务状态分布",
+      "statusSubtitle": "当前工作区全部任务",
+      "trendTitle": "近 7 天任务趋势",
+      "trendSubtitle": "按 Asia/Shanghai 自然日统计",
+      "created": "新建",
+      "completed": "完成",
+      "total": "总任务",
+      "empty": "还没有任务数据",
+      "emptyHint": "创建任务并开始流转后，这里会展示状态分布与 7 天趋势。",
+      "count": "{{count}} 个任务",
+      "percent": "占比 {{percent}}%"
     }
   },
   "taskStatus": {
