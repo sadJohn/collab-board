@@ -3,7 +3,18 @@ import { type Comment, prisma } from "@repo/db";
 import { SOCKET_EVENTS } from "@repo/shared";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { EventsService } from "../events/events.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { CommentsService } from "./comments.service";
+
+type TaskInfo = {
+  id: string;
+  projectId: string;
+  title: string;
+  creatorId: string;
+  assigneeId: string | null;
+  organizationId: string;
+  project: { organizationId: string };
+};
 
 vi.mock("@repo/db", () => ({
   prisma: {
@@ -14,11 +25,15 @@ vi.mock("@repo/db", () => ({
       findFirst: vi.fn(),
       delete: vi.fn(),
     },
+    user: { findUnique: vi.fn() },
   },
 }));
 
 const taskFindFirst = vi.mocked(prisma.task.findFirst) as unknown as Mock<
-  (args: unknown) => Promise<{ id: string; projectId: string } | null>
+  (args: unknown) => Promise<TaskInfo | null>
+>;
+const userFindUnique = vi.mocked(prisma.user.findUnique) as unknown as Mock<
+  (args: unknown) => Promise<{ name: string } | null>
 >;
 const commentFindMany = vi.mocked(prisma.comment.findMany) as unknown as Mock<
   (args: unknown) => Promise<Comment[]>
@@ -50,10 +65,26 @@ function buildCommentWithTask(
   return { ...buildComment(overrides), task: { projectId: "project_1" } };
 }
 
+function buildTaskInfo(overrides: Partial<TaskInfo> = {}): TaskInfo {
+  const organizationId = overrides.organizationId ?? "org_1";
+  return {
+    id: "task_1",
+    projectId: "project_1",
+    title: "Ship feature",
+    creatorId: "user_1",
+    assigneeId: null,
+    organizationId,
+    project: { organizationId },
+    ...overrides,
+  };
+}
+
 describe("CommentsService", () => {
   const emitToProject = vi.fn();
+  const createAndPush = vi.fn().mockResolvedValue(undefined);
   const events = { emitToProject } as unknown as EventsService;
-  const service = new CommentsService(prisma, events);
+  const notifications = { createAndPush } as unknown as NotificationsService;
+  const service = new CommentsService(prisma, events, notifications);
 
   beforeEach(() => {
     taskFindFirst.mockReset();
@@ -61,19 +92,29 @@ describe("CommentsService", () => {
     commentCreate.mockReset();
     commentFindFirst.mockReset();
     commentDelete.mockReset();
+    userFindUnique.mockReset();
     emitToProject.mockReset();
+    createAndPush.mockReset();
+    createAndPush.mockResolvedValue(undefined);
   });
 
   describe("findAll", () => {
     it("lists the comments of a task in chronological order", async () => {
-      taskFindFirst.mockResolvedValue({ id: "task_1", projectId: "project_1" });
+      taskFindFirst.mockResolvedValue(buildTaskInfo());
       commentFindMany.mockResolvedValue([buildComment()]);
 
       const comments = await service.findAll("org_1", "task_1");
 
       expect(taskFindFirst).toHaveBeenCalledWith({
         where: { id: "task_1", project: { organizationId: "org_1" } },
-        select: { id: true, projectId: true },
+        select: {
+          id: true,
+          projectId: true,
+          title: true,
+          creatorId: true,
+          assigneeId: true,
+          project: { select: { organizationId: true } },
+        },
       });
       expect(commentFindMany).toHaveBeenCalledWith({
         where: { taskId: "task_1" },
@@ -94,7 +135,7 @@ describe("CommentsService", () => {
 
   describe("create", () => {
     it("stores the comment and broadcasts COMMENT_ADDED once", async () => {
-      taskFindFirst.mockResolvedValue({ id: "task_1", projectId: "project_1" });
+      taskFindFirst.mockResolvedValue(buildTaskInfo());
       commentCreate.mockResolvedValue(buildComment({ content: "Nice work" }));
 
       await service.create("org_1", "user_1", { taskId: "task_1", content: "Nice work" });
@@ -127,6 +168,76 @@ describe("CommentsService", () => {
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(commentCreate).not.toHaveBeenCalled();
       expect(emitToProject).not.toHaveBeenCalled();
+    });
+
+    it("notifies the creator and assignee (deduped), excluding the author, with a snippet", async () => {
+      taskFindFirst.mockResolvedValue(buildTaskInfo({ creatorId: "user_1", assigneeId: "user_2" }));
+      commentCreate.mockResolvedValue(buildComment({ content: "Looks good" }));
+      userFindUnique.mockResolvedValue({ name: "Carol" });
+
+      await service.create("org_1", "user_3", { taskId: "task_1", content: "Looks good" });
+
+      expect(userFindUnique).toHaveBeenCalledWith({
+        where: { id: "user_3" },
+        select: { name: true },
+      });
+      expect(createAndPush).toHaveBeenCalledTimes(2);
+      expect(createAndPush).toHaveBeenCalledWith({
+        userId: "user_1",
+        type: "COMMENT_ADDED",
+        payload: expect.objectContaining({
+          taskId: "task_1",
+          taskTitle: "Ship feature",
+          projectId: "project_1",
+          organizationId: "org_1",
+          actorName: "Carol",
+          commentSnippet: "Looks good",
+        }),
+      });
+      expect(createAndPush).toHaveBeenCalledWith({
+        userId: "user_2",
+        type: "COMMENT_ADDED",
+        payload: expect.objectContaining({ actorName: "Carol", commentSnippet: "Looks good" }),
+      });
+    });
+
+    it("does not notify when the author is the only recipient", async () => {
+      taskFindFirst.mockResolvedValue(buildTaskInfo({ creatorId: "user_1", assigneeId: null }));
+      commentCreate.mockResolvedValue(buildComment());
+
+      await service.create("org_1", "user_1", { taskId: "task_1", content: "Self note" });
+
+      expect(createAndPush).not.toHaveBeenCalled();
+      expect(userFindUnique).not.toHaveBeenCalled();
+    });
+
+    it("sends one notification when the creator and assignee are the same user", async () => {
+      taskFindFirst.mockResolvedValue(buildTaskInfo({ creatorId: "user_2", assigneeId: "user_2" }));
+      commentCreate.mockResolvedValue(buildComment());
+      userFindUnique.mockResolvedValue({ name: "Carol" });
+
+      await service.create("org_1", "user_1", { taskId: "task_1", content: "Ping" });
+
+      expect(createAndPush).toHaveBeenCalledExactlyOnceWith({
+        userId: "user_2",
+        type: "COMMENT_ADDED",
+        payload: expect.objectContaining({ actorName: "Carol" }),
+      });
+    });
+
+    it("truncates long comments into an inbox snippet", async () => {
+      const longContent = "a".repeat(150);
+      taskFindFirst.mockResolvedValue(buildTaskInfo({ creatorId: "user_2", assigneeId: null }));
+      commentCreate.mockResolvedValue(buildComment({ content: longContent }));
+      userFindUnique.mockResolvedValue({ name: "Carol" });
+
+      await service.create("org_1", "user_1", { taskId: "task_1", content: longContent });
+
+      expect(createAndPush).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ commentSnippet: `${"a".repeat(120)}…` }),
+        }),
+      );
     });
   });
 

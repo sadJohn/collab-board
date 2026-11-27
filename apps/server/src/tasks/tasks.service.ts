@@ -12,6 +12,7 @@ import {
   type UpdateTaskData,
 } from "@repo/shared";
 import { EventsService } from "../events/events.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
 
 export interface TaskPage {
@@ -36,6 +37,7 @@ export class TasksService {
   constructor(
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     private readonly events: EventsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(organizationId: string, projectId: string, query: TaskQuery): Promise<TaskPage> {
@@ -95,6 +97,16 @@ export class TasksService {
       actorId: creatorId,
     });
 
+    if (data.assigneeId && data.assigneeId !== creatorId) {
+      await this.notifyTaskAssigned(data.assigneeId, {
+        taskId: task.id,
+        taskTitle: task.title,
+        projectId: task.projectId,
+        organizationId,
+        actorId: creatorId,
+      }).catch(() => undefined);
+    }
+
     return task;
   }
 
@@ -115,6 +127,23 @@ export class TasksService {
       task: toTaskDto(updated),
       actorId,
     });
+
+    // Notify when the task is reassigned to a different, non-self user.
+    const nextAssigneeId = data.assigneeId;
+    if (
+      nextAssigneeId !== undefined &&
+      nextAssigneeId !== null &&
+      nextAssigneeId !== task.assigneeId &&
+      nextAssigneeId !== actorId
+    ) {
+      await this.notifyTaskAssigned(nextAssigneeId, {
+        taskId: updated.id,
+        taskTitle: updated.title,
+        projectId: updated.projectId,
+        organizationId,
+        actorId,
+      }).catch(() => undefined);
+    }
 
     return updated;
   }
@@ -188,6 +217,40 @@ export class TasksService {
       taskId: task.id,
       projectId: task.projectId,
       actorId,
+    });
+  }
+
+  /** Looks up the actor's display name, falling back to their id if missing. */
+  private async getActorName(actorId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { name: true },
+    });
+    return user?.name ?? actorId;
+  }
+
+  /** Builds the assignment payload and pushes a TASK_ASSIGNED notification. */
+  private async notifyTaskAssigned(
+    recipientId: string,
+    context: {
+      taskId: string;
+      taskTitle: string;
+      projectId: string;
+      organizationId: string;
+      actorId: string;
+    },
+  ): Promise<void> {
+    const actorName = await this.getActorName(context.actorId);
+    await this.notifications.createAndPush({
+      userId: recipientId,
+      type: "TASK_ASSIGNED",
+      payload: {
+        taskId: context.taskId,
+        taskTitle: context.taskTitle,
+        projectId: context.projectId,
+        organizationId: context.organizationId,
+        actorName,
+      },
     });
   }
 

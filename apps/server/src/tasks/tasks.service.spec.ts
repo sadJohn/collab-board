@@ -3,6 +3,7 @@ import { prisma, type Task } from "@repo/db";
 import { SOCKET_EVENTS, type TaskQuery } from "@repo/shared";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { EventsService } from "../events/events.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import { TasksService } from "./tasks.service";
 
 vi.mock("@repo/db", () => {
@@ -15,11 +16,13 @@ vi.mock("@repo/db", () => {
     delete: vi.fn(),
   };
   const project = { findFirst: vi.fn() };
+  const user = { findUnique: vi.fn() };
 
   return {
     prisma: {
       task,
       project,
+      user,
       $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback({ task, project })),
     },
   };
@@ -45,6 +48,9 @@ const taskDelete = vi.mocked(prisma.task.delete) as unknown as Mock<
 >;
 const projectFindFirst = vi.mocked(prisma.project.findFirst) as unknown as Mock<
   (args: unknown) => Promise<{ id: string } | null>
+>;
+const userFindUnique = vi.mocked(prisma.user.findUnique) as unknown as Mock<
+  (args: unknown) => Promise<{ name: string } | null>
 >;
 
 function buildTask(overrides: Partial<Task> = {}): Task {
@@ -74,8 +80,10 @@ const pageQuery: TaskQuery = {
 
 describe("TasksService", () => {
   const emitToProject = vi.fn();
+  const createAndPush = vi.fn().mockResolvedValue(undefined);
   const events = { emitToProject } as unknown as EventsService;
-  const service = new TasksService(prisma, events);
+  const notifications = { createAndPush } as unknown as NotificationsService;
+  const service = new TasksService(prisma, events, notifications);
 
   beforeEach(() => {
     taskFindFirst.mockReset();
@@ -85,7 +93,10 @@ describe("TasksService", () => {
     taskUpdate.mockReset();
     taskDelete.mockReset();
     projectFindFirst.mockReset();
+    userFindUnique.mockReset();
     emitToProject.mockReset();
+    createAndPush.mockReset();
+    createAndPush.mockResolvedValue(undefined);
   });
 
   describe("findAll", () => {
@@ -234,6 +245,125 @@ describe("TasksService", () => {
 
       expect(taskUpdate).not.toHaveBeenCalled();
       expect(emitToProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("assignment notifications", () => {
+    it("notifies the assignee when a task is created for someone else", async () => {
+      projectFindFirst.mockResolvedValue({ id: "project_1" });
+      taskFindFirst.mockResolvedValue(null);
+      taskCreate.mockResolvedValue(
+        buildTask({ id: "task_new", title: "Review PR", assigneeId: "user_2" }),
+      );
+      userFindUnique.mockResolvedValue({ name: "Alice" });
+
+      await service.create("org_1", "user_1", {
+        title: "Review PR",
+        status: "TODO",
+        priority: "HIGH",
+        projectId: "project_1",
+        description: null,
+        assigneeId: "user_2",
+        dueDate: null,
+      });
+
+      expect(userFindUnique).toHaveBeenCalledWith({
+        where: { id: "user_1" },
+        select: { name: true },
+      });
+      expect(createAndPush).toHaveBeenCalledExactlyOnceWith({
+        userId: "user_2",
+        type: "TASK_ASSIGNED",
+        payload: {
+          taskId: "task_new",
+          taskTitle: "Review PR",
+          projectId: "project_1",
+          organizationId: "org_1",
+          actorName: "Alice",
+        },
+      });
+    });
+
+    it("does not notify when the creator assigns the task to themselves", async () => {
+      projectFindFirst.mockResolvedValue({ id: "project_1" });
+      taskFindFirst.mockResolvedValue(null);
+      taskCreate.mockResolvedValue(buildTask({ assigneeId: "user_1" }));
+
+      await service.create("org_1", "user_1", {
+        title: "Self task",
+        status: "TODO",
+        priority: "MEDIUM",
+        projectId: "project_1",
+        description: null,
+        assigneeId: "user_1",
+        dueDate: null,
+      });
+
+      expect(createAndPush).not.toHaveBeenCalled();
+    });
+
+    it("does not notify when a task is created without an assignee", async () => {
+      projectFindFirst.mockResolvedValue({ id: "project_1" });
+      taskFindFirst.mockResolvedValue(null);
+      taskCreate.mockResolvedValue(buildTask({ assigneeId: null }));
+
+      await service.create("org_1", "user_1", {
+        title: "Unassigned",
+        status: "TODO",
+        priority: "MEDIUM",
+        projectId: "project_1",
+        description: null,
+        assigneeId: null,
+        dueDate: null,
+      });
+
+      expect(createAndPush).not.toHaveBeenCalled();
+    });
+
+    it("notifies the new assignee when a task is reassigned", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ assigneeId: null }));
+      taskUpdate.mockResolvedValue(buildTask({ title: "T", assigneeId: "user_2" }));
+      userFindUnique.mockResolvedValue({ name: "Bob" });
+
+      await service.update("org_1", "task_1", { assigneeId: "user_2" }, "user_1");
+
+      expect(createAndPush).toHaveBeenCalledExactlyOnceWith({
+        userId: "user_2",
+        type: "TASK_ASSIGNED",
+        payload: expect.objectContaining({
+          taskId: "task_1",
+          taskTitle: "T",
+          organizationId: "org_1",
+          actorName: "Bob",
+        }),
+      });
+    });
+
+    it("does not notify when the assignee is unchanged", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ assigneeId: "user_2" }));
+      taskUpdate.mockResolvedValue(buildTask({ assigneeId: "user_2" }));
+
+      await service.update("org_1", "task_1", { assigneeId: "user_2" }, "user_1");
+
+      expect(createAndPush).not.toHaveBeenCalled();
+    });
+
+    it("does not notify when unassigning a task", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ assigneeId: "user_2" }));
+      taskUpdate.mockResolvedValue(buildTask({ assigneeId: null }));
+
+      await service.update("org_1", "task_1", { assigneeId: null }, "user_1");
+
+      expect(createAndPush).not.toHaveBeenCalled();
+    });
+
+    it("does not notify when reassigning to the actor themselves", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ assigneeId: "user_2" }));
+      taskUpdate.mockResolvedValue(buildTask({ assigneeId: "user_1" }));
+
+      await service.update("org_1", "task_1", { assigneeId: "user_1" }, "user_1");
+
+      expect(createAndPush).not.toHaveBeenCalled();
     });
   });
 
