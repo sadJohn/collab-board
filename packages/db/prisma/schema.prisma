@@ -240,3 +240,29 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@map("notification")
 }
+
+// ---------------------------------------------------------------------------
+// Product analytics (Phase 12)
+//
+// Append-only event log written by the `analytics` BullMQ worker (or directly
+// when Redis is disabled). `userId` / `organizationId` are nullable because
+// anonymous page views are accepted; the server never trusts a client-supplied
+// user id — it injects the session's user when present.
+// ---------------------------------------------------------------------------
+
+model AnalyticsEvent {
+  id              String   @id @default(cuid())
+  eventName       String
+  userId          String?
+  organizationId  String?
+  sessionId       String
+  path            String
+  properties      Json?
+  // Client-reported event time (browser clock). Kept separate from the server
+  // `createdAt` so trend charts reflect when the user actually acted.
+  clientTimestamp DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, eventName, createdAt])
+  @@map("analytics_event")
+}
