@@ -85,9 +85,8 @@ export type SocketPayloadMap = {
 };
 export type SocketEventPayload<K extends keyof SocketPayloadMap> = SocketPayloadMap[K];
 
-export interface RoomAck {
-  room: string;
-}
+/** Ack for room join/leave: the joined room, or a machine-readable error code. */
+export type RoomAck = { ok: true; room: string } | { ok: false; error: string };
 
 export interface ServerToClientEvents {
   [SOCKET_EVENTS.TASK_CREATED]: (payload: TaskCreatedPayload) => void;
@@ -103,5 +102,8 @@ export interface ClientToServerEvents {
     payload: JoinProjectRoomPayload,
     ack?: (response: RoomAck) => void,
   ) => void;
-  [SOCKET_EVENTS.LEAVE_PROJECT_ROOM]: (payload: JoinProjectRoomPayload) => void;
+  [SOCKET_EVENTS.LEAVE_PROJECT_ROOM]: (
+    payload: JoinProjectRoomPayload,
+    ack?: (response: RoomAck) => void,
+  ) => void;
 }
