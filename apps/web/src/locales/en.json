@@ -107,6 +107,7 @@
       "submit": "Sign in",
       "submitting": "Signing in…",
       "failed": "Sign-in failed. Check your email and password.",
+      "forgotPassword": "Forgot password?",
       "noAccount": "No account yet?",
       "toRegister": "Create one"
     },
@@ -118,6 +119,26 @@
       "failed": "Sign-up failed. Please try again.",
       "haveAccount": "Already have an account?",
       "toSignIn": "Sign in"
+    },
+    "forgot": {
+      "title": "Forgot password",
+      "subtitle": "Enter your account email and we'll send you a reset link.",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If that email is registered, we've sent a reset link. Check your inbox.",
+      "failed": "Couldn't send the reset link. Try again.",
+      "backToSignIn": "Back to sign in"
+    },
+    "reset": {
+      "title": "Reset password",
+      "subtitle": "Choose a new password and sign in with it.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Reset password",
+      "submitting": "Submitting…",
+      "failed": "Couldn't reset the password. Request a new link.",
+      "missingToken": "This reset link is invalid or has expired.",
+      "requestNew": "Request a new link"
     }
   },
   "nav": {

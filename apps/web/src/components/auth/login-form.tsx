@@ -60,6 +60,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         type="password"
       />
 
+      <div className="flex justify-end">
+        {/* A plain anchor keeps the form renderable outside a RouterProvider. */}
+        <a
+          className="text-muted-foreground text-xs underline-offset-4 hover:text-foreground hover:underline"
+          href="/forgot-password"
+        >
+          {t("auth.signIn.forgotPassword")}
+        </a>
+      </div>
+
       {formError ? (
         <p className="text-destructive text-sm" role="alert">
           {formError}
