@@ -349,6 +349,30 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **9.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
   - **阶段九完成标准**：任务指派与新评论可实时推送到接收人，铃铛未读角标即时更新，点击通知可标记已读并跳转打开对应任务抽屉；业务通知与工作区邀请在同一收件箱合并展示并按时间倒序；全部测试、类型检查、规范与构建命令通过。
 
+- **第十阶段（Phase 10）：首页升级为个人工作台（Workspace Dashboard）**
+  - 将登录后的占位首页重构为个人工作台；未登录访问 `/` 展示产品欢迎页。
+  - 工作台聚合当前工作区的统计概览、我的任务、项目进度与最近动态，并展示任务状态分布与近 7 天趋势图表。
+  - **技术决策与前置约定**
+    - **入口路由**：`/` 为公开入口，`beforeLoad` 仅读取 session（不挂 `_app`）；已登录重定向至 `/_app/dashboard`，`/home` 重定向至 `/dashboard`。
+    - **工作区来源**：`GET /dashboard` 不接收 `:organizationId`，统一取自 `session.activeOrganizationId`；无 activeOrganization 时返回 `400`。
+    - **统计口径（互不重叠，均限当前登录用户在当前工作区）**：`assignedCount` = `BACKLOG` + `TODO`；`inProgressCount` = `IN_PROGRESS`；`overdueCount` = `dueDate < now` 且状态非 `DONE`/`CANCELED`；`completedCount` = `DONE`。
+    - **图表组件归属**：`recharts` 由 `packages/ui` 声明依赖，图表组件位于 `packages/ui/src/components/chart.tsx`；`--chart-1` ~ `--chart-5` 变量在 `apps/web/src/index.css` 与 `packages/ui` 的 Tailwind 预设中定义。
+    - **完成时间基准**：`Task` 新增 `completedAt DateTime?` 作为「每日完成数」的唯一来源；按天分桶统一使用 `Asia/Shanghai`。
+  - **子任务拆解（10.1 – 10.8）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **10A 路由与后端聚合**
+      - **10.1 路由分流（`apps/web`）**：`src/routes/index.tsx` 改为公开入口——未登录渲染精简欢迎页（「开始使用」→ `/register`、「登录」→ `/login`），已登录 `redirect` 至 `/dashboard`；新增 `src/routes/_app/dashboard.tsx`；`src/routes/_app/home.tsx` 改为 `redirect({ to: "/dashboard" })`；**验收**：匿名访问 `/` 见欢迎页且两个按钮跳转正确，已登录访问 `/` 直达工作台，访问 `/home` 自动重定向至 `/dashboard`。
+      - **10.2 Dashboard 聚合接口（`apps/server`）**：新增 `DashboardModule`（`DashboardService` + `DashboardController`，`@UseGuards(AuthGuard, OrganizationGuard)`），`GET /dashboard` 单次返回：`stats`（四项口径见上）；`myTasks`（指派给当前用户且状态非 `DONE`/`CANCELED`，`orderBy: [{ priority: "desc" }, { dueDate: "asc", nulls: "last" }]`，附带 `project: { id, name, key }`，上限 20 条）；`projects`（项目列表 + 任务总数/已完成数，使用 `_count` 或分组聚合避免 N+1）；DTO 与校验规则统一定义在 `packages/shared`；**验收**：`DashboardService` 单测覆盖四项统计口径、排序、空工作区与无 activeOrganization 场景。
+    - **10B 前端工作台**
+      - **10.3 工作台 UI（`apps/web`）**：新增 `src/lib/api/dashboard.ts` 与 `queryKeys.dashboard`；将 `src/components/home-page.tsx` 重写为工作台并彻底移除静态占位代码，补齐 `zh.json` 与 `en.json` 的工作台翻译 Key：顶部欢迎区展示问候语、当前工作区徽标、「新建项目」与「打开命令面板（⌘K）」（「新建任务」先选择项目再跳转对应看板创建）；指标概览区为 4 列响应式卡片（待处理、进行中、逾期、已完成），使用图标与数字高亮；双栏主体区（左 2/3 + 右 1/3）左侧「我的任务」展示项目 Key 徽标、优先级图标、任务标题、状态 Badge 与截止日期，点击跳转对应项目并调用 `setActiveTaskId` 打开任务抽屉，右侧「项目列表」以完成度进度条展示并可点击进入看板，下方复用 `useNotifications()` 展示最近 5 条动态；使用 `motion` 添加卡片入场微交互；**验收**：四项指标与接口一致，点击我的任务准确跳转并自动打开抽屉，中英文文案完整，`pnpm --filter @repo/web typecheck` 通过。
+      - **10.4 实时刷新（`apps/web`）**：在既有 socket 事件处理（`TASK_CREATED` / `TASK_UPDATED` / `TASK_MOVED` / `TASK_DELETED` / `COMMENT_ADDED`）中同步 `invalidateQueries` 工作台查询键，使指标、我的任务、项目进度与图表随协作实时更新；**验收**：双浏览器窗口下 A 创建/移动/删除任务或发表评论，B 的工作台无需刷新即更新。
+    - **10C 数据可视化**
+      - **10.5 图表组件与主题变量（`packages/ui` & `apps/web`）**：在 `packages/ui` 新增 `src/components/chart.tsx`（shadcn chart 源码）并在 `packages/ui/package.json` 声明 `recharts` 依赖；在 `apps/web/src/index.css` 与 `packages/ui` 的 Tailwind 预设中补齐 `--chart-1` ~ `--chart-5` 明暗主题变量；从 `packages/ui/src/index.ts` 导出 Chart 组件；**验收**：`pnpm --filter @repo/ui typecheck` 通过，明暗主题下变量均生效。
+      - **10.6 完成时间与图表数据（`packages/db` & `apps/server`）**：`packages/db/prisma/schema.prisma` 为 `Task` 新增 `completedAt DateTime?`，执行 `pnpm --filter @repo/db db:push` 同步并重新生成 Prisma Client；`TasksService` 在状态流转到 `DONE` 时写入 `completedAt`、离开 `DONE` 时清空；`GET /dashboard` 增加 `statusDistribution`（`prisma.task.groupBy({ by: ['status'], _count: true })`）与 `weeklyTrend: Array<{ date: string; created: number; completed: number }>`（近 7 天按天分桶，使用 `$queryRaw` 或取出后在 JS 聚合，边界按 `Asia/Shanghai` 计算）；`completed` 以 `completedAt` 为准，存量数据以 `updatedAt` 近似回填并在注释说明；**验收**：单测覆盖 `DONE` 写入与离开清空、7 天分桶边界与空工作区。
+      - **10.7 图表渲染（`apps/web`）**：左右双列响应式布局渲染两个图表——任务状态分布环形图（圆环中心显示工作区总任务数，悬停展示本地化状态名称与数量占比）与近 7 天任务趋势柱状图（对比每日新增与已完成，X 轴随中英文日期格式自适应）；总任务数为 0 时展示空状态引导卡片；**验收**：中英文与明暗主题下图表与 Tooltip 正常，空工作区不出现空坐标系。
+    - **10D 收尾**
+      - **10.8 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十完成标准**：未登录访问 `/` 展示欢迎页，已登录访问 `/` 直达个人工作台；工作台指标、我的任务、项目进度、最近动态与两个图表均由 `GET /dashboard` 驱动，并在协作事件下实时刷新；点击我的任务可跳转对应项目并自动打开任务详情抽屉；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
