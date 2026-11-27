@@ -276,5 +276,21 @@
       "admin": "管理员",
       "owner": "所有者"
     }
+  },
+  "notifications": {
+    "title": "通知",
+    "unread": "{{count}} 条未读",
+    "empty": "暂无新通知。",
+    "loading": "加载通知中…",
+    "loadFailed": "通知加载失败。",
+    "invitation": {
+      "text": "{{email}} · 邀请你加入工作区",
+      "accept": "接受",
+      "reject": "拒绝",
+      "accepting": "接受中…",
+      "rejecting": "拒绝中…",
+      "acceptFailed": "接受邀请失败，请重试。",
+      "rejectFailed": "拒绝邀请失败，请重试。"
+    }
   }
 }

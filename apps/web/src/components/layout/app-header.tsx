@@ -21,6 +21,7 @@ import {
 import { useUiStore } from "../../stores/ui-store";
 import { LanguageSwitcher } from "../language-switcher";
 import { UserAvatar } from "../user-avatar";
+import { NotificationCenter } from "./notification-center";
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -93,6 +94,7 @@ export function AppHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <NotificationCenter />
           <LanguageSwitcher />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

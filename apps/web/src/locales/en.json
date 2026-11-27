@@ -276,5 +276,21 @@
       "admin": "Admin",
       "owner": "Owner"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unread": "{{count}} unread",
+    "empty": "No new notifications.",
+    "loading": "Loading notifications…",
+    "loadFailed": "Could not load notifications.",
+    "invitation": {
+      "text": "{{email}} · invited you to a workspace",
+      "accept": "Accept",
+      "reject": "Decline",
+      "accepting": "Accepting…",
+      "rejecting": "Declining…",
+      "acceptFailed": "Could not accept the invitation. Try again.",
+      "rejectFailed": "Could not decline the invitation. Try again."
+    }
   }
 }
