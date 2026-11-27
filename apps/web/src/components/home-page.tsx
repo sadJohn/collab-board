@@ -260,26 +260,32 @@ export function DashboardPage() {
         </div>
       </motion.header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <motion.div
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl border bg-card p-5 shadow-xs"
-              initial={{ opacity: 0, y: 8 }}
-              key={card.key}
-              transition={{ delay: index * 0.05, duration: 0.25 }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground text-sm">{card.label}</span>
-                <Icon className={`size-4 ${card.tone}`} />
-              </div>
-              <p className="mt-2 font-semibold text-3xl tabular-nums">{card.value}</p>
-            </motion.div>
-          );
-        })}
-      </section>
+      <div className="flex flex-col gap-3">
+        <h2 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+          {t("dashboard.stats.title")}
+        </h2>
+
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {statCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.div
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border bg-card p-5 shadow-xs"
+                initial={{ opacity: 0, y: 8 }}
+                key={card.key}
+                transition={{ delay: index * 0.05, duration: 0.25 }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground text-sm">{card.label}</span>
+                  <Icon className={`size-4 ${card.tone}`} />
+                </div>
+                <p className="mt-2 font-semibold text-3xl tabular-nums">{card.value}</p>
+              </motion.div>
+            );
+          })}
+        </section>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <motion.section

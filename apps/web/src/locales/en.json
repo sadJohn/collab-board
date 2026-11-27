@@ -33,6 +33,7 @@
     "noWorkspace": "Select or create a workspace to see your dashboard.",
     "goWorkspace": "Go to workspace",
     "stats": {
+      "title": "My task overview",
       "assigned": "To do",
       "inProgress": "In progress",
       "overdue": "Overdue",

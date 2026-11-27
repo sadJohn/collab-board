@@ -33,6 +33,7 @@
     "noWorkspace": "请先选择或创建一个工作区，再查看工作台。",
     "goWorkspace": "前往工作区",
     "stats": {
+      "title": "我的任务概览",
       "assigned": "待处理",
       "inProgress": "进行中",
       "overdue": "逾期",
