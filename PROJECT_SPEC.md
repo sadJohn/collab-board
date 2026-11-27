@@ -286,6 +286,26 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **6.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错。
   - **阶段六完成标准**：上传接口受认证保护且仅接受白名单 MIME 与 ≤2MB 文件；Supabase Storage 下可完成头像直传并刷新会话，导航、任务卡片、抽屉与评论头像同步更新；无头像用户统一展示首字母头像；全部测试、类型检查、规范与构建命令通过。
 
+- **第七阶段（Phase 7）：全局命令面板（Cmd + K）与实时在线成员（Online Presence）**
+  - 支持通过全局快捷键呼出命令面板，仅用键盘完成高频操作与跨视图跳转。
+  - 在项目顶部导航实时展示当前正在查看该项目的在线成员头像组。
+  - **技术决策与前置约定**
+    - **命令面板状态归属**：面板开关属于纯 UI 状态，放入 `Zustand`（`ui-store.ts`）的 `commandPaletteOpen`，绑定全局快捷键 `Cmd + K`（macOS）与 `Ctrl + K`（Windows/Linux），并在顶部导航提供可点击触发按钮（显示 `⌘K` 提示徽标）；组件基于 `shadcn/ui` 的 `Command`（底层 `cmdk`）实现，所有分组标题、操作指令与搜索占位符必须接入 `react-i18next`。
+    - **在线状态数据来源**：复用现有 `Socket.io` 房间机制（`project:${projectId}`），在单个 NestJS 实例的内存中通过房间 Socket 列表聚合在线用户，**不引入额外数据库写操作或 Redis**；按 `userId` 去重，同一用户多个标签页只展示一个头像，全部断开或离开房间后移除；在线成员属于服务端推送数据，只保存在 Hook 层，严禁写入 `Zustand`。
+    - **组件复用**：在线头像复用第六阶段的 `<UserAvatar size="sm" />`，超过 5 人折叠为 `+N`。
+  - **子任务拆解（7.1 – 7.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **7A 共享契约与服务端在线状态**
+      - **7.1 共享 Socket 在线状态契约（`packages/shared`）**：在 `socket-events.ts` 新增服务端广播事件 `ROOM_PRESENCE_UPDATED`（载荷 `{ projectId: string; users: Array<{ id: string; name: string; email: string; image: string | null }> }`）及可选的客户端查询事件 `GET_ROOM_PRESENCE`（防止极端时序下错过首次广播），补齐 `SOCKET_EVENTS`、`socketPayloadSchemas` 与双端事件类型；单测覆盖合法载荷与缺字段拒绝。验收：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+      - **7.2 服务端房间在线成员聚合与广播（`apps/server`）**：扩展 `ProjectsGateway`，连接鉴权通过后确保 `socket.data.user` 含 `{ id, name, email, image }`；新增辅助方法 `broadcastRoomPresence(projectId)`，通过 `server.in(projectRoomName(projectId)).fetchSockets()` 获取房间内活跃 Socket，按 `user.id` 去重后向该房间广播 `ROOM_PRESENCE_UPDATED`（广播前经共享 Schema `parse` 校验）；在 `JOIN_PROJECT_ROOM` 成功后、`LEAVE_PROJECT_ROOM` 后、`disconnecting`（离开所有房间前）三个时机触发。验收：`ProjectsGateway` 单测覆盖「单人进出房间广播、同用户多标签页去重、断开连接自动移除」。
+    - **7B 前端在线成员**
+      - **7.3 在线成员 Hook 与头像栏组件（`apps/web`）**：`useProjectRealtime(projectId)` 监听 `ROOM_PRESENCE_UPDATED`（边界 `parse` 校验）维护当前项目在线成员列表状态，切换项目或离开路由时自动清空（可选：join 后发送 `GET_ROOM_PRESENCE` 兜底）；封装 `<OnlinePresenceAvatars users currentUserId />`，复用 `<UserAvatar size="sm" />`，Tooltip 悬停展示成员姓名与「在线 / Online」状态徽标（当前用户标注「我 / You」），超过 5 人显示 `+N` 计数徽标；挂载到项目布局顶部导航栏右侧。验收：开两个不同账号的浏览器窗口进入同一项目，双方顶部实时显示彼此头像；关闭其中一个窗口后另一端头像自动消失。
+    - **7C 全局命令面板**
+      - **7.4 命令面板状态与组件（`apps/web`）**：通过 `npx shadcn@latest add command` 引入 `Command` 组件；`ui-store.ts` 增加 `commandPaletteOpen` 状态及 `setCommandPaletteOpen`、`toggleCommandPalette` 动作；封装 `<CommandPalette />` 并挂载到受保护根布局，绑定全局 `keydown` 监听（`e.key === "k" && (e.metaKey || e.ctrlKey)`，命中时 `e.preventDefault()`）；补齐 `zh.json` 与 `en.json` 中命令面板的所有分组与指令翻译 Key。验收：在任意受保护页面按下 `Cmd + K` / `Ctrl + K` 可流畅呼出或关闭命令面板，i18n 类型检查通过。
+      - **7.5 命令面板核心指令集联调（`apps/web`）**：在 `<CommandPalette />` 中实现四类高频指令（执行后自动关闭面板）：(1) **快速操作**：新建任务（打开新建任务弹窗）、切换中英文（联动 `ui-store` 与 `i18next`）、前往个人资料设置（跳转 `/settings/profile`）；(2) **视图切换**（项目路由下显示）：切换到看板视图（Board）、切换到列表视图（List）；(3) **当前项目任务快搜**（项目路由下显示）：直接读取 `TanStack Query` 已缓存的当前项目任务列表，按标题 / Key 秒搜，回车打开对应任务详情抽屉（`setActiveTaskId`）；(4) **切换工作区**：列出当前用户所属组织，选中后调用 BetterAuth `setActive` 切换工作区。验收：仅用键盘上下方向键与回车即可完成切换视图、搜索任务开抽屉、切换语言与跳转设置。
+    - **7D 收尾**
+      - **7.6 收尾自检**：补充 `ui-store` 命令面板开关测试与在线成员去重 / 折叠格式化纯函数单测；依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错。
+  - **阶段七完成标准**：命令面板可通过全局快捷键呼出并仅用键盘完成高频操作与跨视图跳转；同一项目内在线成员头像实时增减、按用户去重且多标签页不重复；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
