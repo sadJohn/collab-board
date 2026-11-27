@@ -8,6 +8,12 @@ import {
   type TaskStatus,
 } from "@repo/shared";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
+import { RedisService } from "../redis/redis.service";
+import {
+  DASHBOARD_CACHE_TTL_SECONDS,
+  dashboardCacheKey,
+  dashboardVersionKey,
+} from "../redis/redis-keys";
 
 /** Statuses that count as "not started" in the overview cards. */
 const ASSIGNED_STATUSES = ["BACKLOG", "TODO"] as const;
@@ -58,7 +64,10 @@ function toTaskDto(task: Task): TaskDto {
 
 @Injectable()
 export class DashboardService {
-  constructor(@Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Aggregates everything the workspace dashboard needs in a single round trip.
@@ -66,10 +75,23 @@ export class DashboardService {
    * Stats and `myTasks` are scoped to the current user; `projects` is scoped to
    * the active workspace. Every query filters through `project.organizationId`
    * so no tenant can read another workspace's tasks.
+   *
+   * Cache-aside: the payload is cached per `(workspace version, user)` for 60s.
+   * Task / project writes bump the workspace version, which invalidates every
+   * user's entry at once without scanning keys. Any Redis outage simply falls
+   * through to Prisma.
    */
   async getDashboard(organizationId: string, userId: string): Promise<DashboardDto> {
     if (!organizationId) {
       throw new BadRequestException("请先选择一个工作区");
+    }
+
+    const version = (await this.redis.getJson<number>(dashboardVersionKey(organizationId))) ?? 0;
+    const cacheKey = dashboardCacheKey(organizationId, version, userId);
+
+    const cached = await this.redis.getJson<DashboardDto>(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const now = new Date();
@@ -153,7 +175,7 @@ export class DashboardService {
       }
     }
 
-    return {
+    const dashboard: DashboardDto = {
       stats: { assignedCount, inProgressCount, overdueCount, completedCount },
       myTasks: myTasks.map((task) => ({
         ...toTaskDto(task),
@@ -170,6 +192,9 @@ export class DashboardService {
         completed: completedByDay.get(date) ?? 0,
       })),
     };
+
+    await this.redis.setJson(cacheKey, dashboard, DASHBOARD_CACHE_TTL_SECONDS);
+    return dashboard;
   }
 
   /** Tasks created or completed since `start`, for the seven-day trend buckets. */

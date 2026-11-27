@@ -2,6 +2,8 @@ import { ConflictException, Inject, Injectable, NotFoundException } from "@nestj
 import type { PrismaClient, Project } from "@repo/db";
 import type { CreateProjectData, UpdateProjectData } from "@repo/shared";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
+import { RedisService } from "../redis/redis.service";
+import { dashboardVersionKey } from "../redis/redis-keys";
 
 /**
  * Prisma raises P2002 when a unique constraint is violated. Checking the code
@@ -14,7 +16,10 @@ function isUniqueConstraintViolation(error: unknown): boolean {
 
 @Injectable()
 export class ProjectsService {
-  constructor(@Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    private readonly redis: RedisService,
+  ) {}
 
   findAll(organizationId: string): Promise<Project[]> {
     return this.prisma.project.findMany({
@@ -37,9 +42,11 @@ export class ProjectsService {
 
   async create(organizationId: string, data: CreateProjectData): Promise<Project> {
     try {
-      return await this.prisma.project.create({
+      const project = await this.prisma.project.create({
         data: { ...data, organizationId },
       });
+      await this.invalidateDashboard(organizationId);
+      return project;
     } catch (error) {
       if (isUniqueConstraintViolation(error)) {
         throw new ConflictException("该项目标识在工作区内已被使用");
@@ -52,10 +59,12 @@ export class ProjectsService {
     await this.findOne(organizationId, id);
 
     try {
-      return await this.prisma.project.update({
+      const project = await this.prisma.project.update({
         where: { id },
         data,
       });
+      await this.invalidateDashboard(organizationId);
+      return project;
     } catch (error) {
       if (isUniqueConstraintViolation(error)) {
         throw new ConflictException("该项目标识在工作区内已被使用");
@@ -67,5 +76,11 @@ export class ProjectsService {
   async remove(organizationId: string, id: string): Promise<void> {
     await this.findOne(organizationId, id);
     await this.prisma.project.delete({ where: { id } });
+    await this.invalidateDashboard(organizationId);
+  }
+
+  /** Bumps the workspace dashboard version so all cached dashboards go stale. */
+  private async invalidateDashboard(organizationId: string): Promise<void> {
+    await this.redis.incr(dashboardVersionKey(organizationId));
   }
 }

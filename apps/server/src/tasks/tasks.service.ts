@@ -14,6 +14,8 @@ import {
 import { EventsService } from "../events/events.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
+import { RedisService } from "../redis/redis.service";
+import { dashboardVersionKey } from "../redis/redis-keys";
 
 export interface TaskPage {
   items: Task[];
@@ -59,6 +61,7 @@ export class TasksService {
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
     private readonly events: EventsService,
     private readonly notifications: NotificationsService,
+    private readonly redis: RedisService,
   ) {}
 
   async findAll(organizationId: string, projectId: string, query: TaskQuery): Promise<TaskPage> {
@@ -118,6 +121,8 @@ export class TasksService {
       },
     });
 
+    await this.invalidateDashboard(organizationId);
+
     this.events.emitToProject(task.projectId, SOCKET_EVENTS.TASK_CREATED, {
       task: toTaskDto(task),
       actorId: creatorId,
@@ -148,6 +153,8 @@ export class TasksService {
       where: { id: task.id },
       data: { ...data, ...completedAtPatch(data.status, task.status) },
     });
+
+    await this.invalidateDashboard(organizationId);
 
     this.events.emitToProject(updated.projectId, SOCKET_EVENTS.TASK_UPDATED, {
       task: toTaskDto(updated),
@@ -236,6 +243,8 @@ export class TasksService {
       fromStatus,
     });
 
+    await this.invalidateDashboard(organizationId);
+
     return moved;
   }
 
@@ -243,11 +252,18 @@ export class TasksService {
     const task = await this.findOwnedTask(organizationId, id);
     await this.prisma.task.delete({ where: { id: task.id } });
 
+    await this.invalidateDashboard(organizationId);
+
     this.events.emitToProject(task.projectId, SOCKET_EVENTS.TASK_DELETED, {
       taskId: task.id,
       projectId: task.projectId,
       actorId,
     });
+  }
+
+  /** Bumps the workspace dashboard version so all cached dashboards go stale. */
+  private async invalidateDashboard(organizationId: string): Promise<void> {
+    await this.redis.incr(dashboardVersionKey(organizationId));
   }
 
   /** Looks up the actor's display name, falling back to their id if missing. */

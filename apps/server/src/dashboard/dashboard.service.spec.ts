@@ -1,6 +1,8 @@
 import { BadRequestException } from "@nestjs/common";
 import { prisma } from "@repo/db";
+import type { DashboardDto } from "@repo/shared";
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import type { RedisService } from "../redis/redis.service";
 import { DashboardService } from "./dashboard.service";
 
 vi.mock("@repo/db", () => {
@@ -51,18 +53,33 @@ function countArgs(index: number): Record<string, unknown> {
 }
 
 describe("DashboardService", () => {
-  const service = new DashboardService(prisma);
+  const getJson = vi.fn();
+  const setJson = vi.fn();
+  const incr = vi.fn();
+  const redis = {
+    getJson,
+    setJson,
+    del: vi.fn(),
+    incr,
+  } as unknown as RedisService;
+  const service = new DashboardService(prisma, redis);
 
   beforeEach(() => {
     taskCount.mockReset();
     taskFindMany.mockReset();
     taskGroupBy.mockReset();
     projectFindMany.mockReset();
+    getJson.mockReset();
+    setJson.mockReset();
+    incr.mockReset();
 
     taskCount.mockResolvedValue(0);
     taskFindMany.mockResolvedValue([]);
     taskGroupBy.mockResolvedValue([]);
     projectFindMany.mockResolvedValue([]);
+    getJson.mockResolvedValue(null);
+    setJson.mockResolvedValue(undefined);
+    incr.mockResolvedValue(1);
   });
 
   afterEach(() => {
@@ -267,6 +284,52 @@ describe("DashboardService", () => {
     expect(result.weeklyTrend.every((point) => point.created === 0 && point.completed === 0)).toBe(
       true,
     );
+  });
+
+  it("writes the aggregate into the versioned cache on a miss", async () => {
+    const result = await service.getDashboard(organizationId, userId);
+
+    expect(getJson).toHaveBeenCalledWith("dashboard:ver:org_1");
+    expect(getJson).toHaveBeenCalledWith("dashboard:org_1:v0:user_1");
+    expect(setJson).toHaveBeenCalledWith("dashboard:org_1:v0:user_1", result, 60);
+  });
+
+  it("returns the cached payload without querying Prisma", async () => {
+    const cached: DashboardDto = {
+      stats: { assignedCount: 1, inProgressCount: 2, overdueCount: 3, completedCount: 4 },
+      myTasks: [],
+      projects: [],
+      statusDistribution: [],
+      weeklyTrend: [],
+    };
+    getJson.mockImplementation(async (key: string) => {
+      if (key === "dashboard:ver:org_1") return 7;
+      return cached;
+    });
+
+    await expect(service.getDashboard(organizationId, userId)).resolves.toBe(cached);
+
+    expect(taskCount).not.toHaveBeenCalled();
+    expect(taskFindMany).not.toHaveBeenCalled();
+    expect(taskGroupBy).not.toHaveBeenCalled();
+    expect(projectFindMany).not.toHaveBeenCalled();
+    expect(getJson).toHaveBeenCalledWith("dashboard:org_1:v7:user_1");
+    expect(setJson).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the database and still succeeds when Redis is unavailable", async () => {
+    getJson.mockResolvedValue(null);
+    setJson.mockResolvedValue(undefined);
+
+    const result = await service.getDashboard(organizationId, userId);
+
+    expect(result.stats).toEqual({
+      assignedCount: 0,
+      inProgressCount: 0,
+      overdueCount: 0,
+      completedCount: 0,
+    });
+    expect(taskCount).toHaveBeenCalled();
   });
 
   it("rejects requests without an active organization before querying the database", async () => {

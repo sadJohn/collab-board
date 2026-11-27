@@ -4,6 +4,7 @@ import { SOCKET_EVENTS, type TaskQuery } from "@repo/shared";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { EventsService } from "../events/events.service";
 import type { NotificationsService } from "../notifications/notifications.service";
+import type { RedisService } from "../redis/redis.service";
 import { TasksService } from "./tasks.service";
 
 vi.mock("@repo/db", () => {
@@ -82,9 +83,11 @@ const pageQuery: TaskQuery = {
 describe("TasksService", () => {
   const emitToProject = vi.fn();
   const createAndPush = vi.fn().mockResolvedValue(undefined);
+  const incr = vi.fn().mockResolvedValue(1);
   const events = { emitToProject } as unknown as EventsService;
   const notifications = { createAndPush } as unknown as NotificationsService;
-  const service = new TasksService(prisma, events, notifications);
+  const redis = { incr } as unknown as RedisService;
+  const service = new TasksService(prisma, events, notifications, redis);
 
   beforeEach(() => {
     taskFindFirst.mockReset();
@@ -97,7 +100,9 @@ describe("TasksService", () => {
     userFindUnique.mockReset();
     emitToProject.mockReset();
     createAndPush.mockReset();
+    incr.mockReset();
     createAndPush.mockResolvedValue(undefined);
+    incr.mockResolvedValue(1);
   });
 
   describe("findAll", () => {
@@ -190,6 +195,7 @@ describe("TasksService", () => {
           actorId: "user_1",
         },
       );
+      expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
     });
 
     it("rejects creating a task in a project outside the organization", async () => {
@@ -257,6 +263,7 @@ describe("TasksService", () => {
         },
       );
       expect(updated.title).toBe("Renamed");
+      expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
     });
 
     it("does not broadcast when the task is outside the organization", async () => {
@@ -465,6 +472,7 @@ describe("TasksService", () => {
         actorId: "user_1",
         fromStatus: "BACKLOG",
       });
+      expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
     });
 
     it("rejects a neighbour that does not belong to the task's project", async () => {
@@ -583,6 +591,7 @@ describe("TasksService", () => {
         SOCKET_EVENTS.TASK_DELETED,
         { taskId: "task_1", projectId: "project_1", actorId: "user_1" },
       );
+      expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
     });
 
     it("rejects deleting a task from another organization", async () => {

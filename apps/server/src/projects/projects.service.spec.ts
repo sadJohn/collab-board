@@ -1,6 +1,7 @@
 import { ConflictException, NotFoundException } from "@nestjs/common";
 import { type Project, prisma } from "@repo/db";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import type { RedisService } from "../redis/redis.service";
 import { ProjectsService } from "./projects.service";
 
 vi.mock("@repo/db", () => ({
@@ -45,7 +46,9 @@ function buildProject(overrides: Partial<Project> = {}): Project {
 }
 
 describe("ProjectsService", () => {
-  const service = new ProjectsService(prisma);
+  const incr = vi.fn().mockResolvedValue(1);
+  const redis = { incr } as unknown as RedisService;
+  const service = new ProjectsService(prisma, redis);
 
   beforeEach(() => {
     findMany.mockReset();
@@ -53,6 +56,8 @@ describe("ProjectsService", () => {
     create.mockReset();
     update.mockReset();
     remove.mockReset();
+    incr.mockReset();
+    incr.mockResolvedValue(1);
   });
 
   it("lists only the projects of the active organization", async () => {
@@ -84,6 +89,7 @@ describe("ProjectsService", () => {
     expect(create).toHaveBeenCalledWith({
       data: { name: "Collab Board", key: "CB", description: null, organizationId: "org_1" },
     });
+    expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
   });
 
   it("maps duplicate project keys to 409", async () => {
@@ -94,6 +100,7 @@ describe("ProjectsService", () => {
     await expect(
       service.create("org_1", { name: "Collab Board", key: "CB", description: null }),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(incr).not.toHaveBeenCalled();
   });
 
   it("refuses to update a project from another organization", async () => {
@@ -115,5 +122,6 @@ describe("ProjectsService", () => {
       where: { id: "project_1", organizationId: "org_1" },
     });
     expect(remove).toHaveBeenCalledWith({ where: { id: "project_1" } });
+    expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
   });
 });
