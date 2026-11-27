@@ -219,5 +219,24 @@
     "you": "You",
     "count": "{{count}} online",
     "andMore": "+{{count}}"
+  },
+  "command": {
+    "title": "Command palette",
+    "description": "Quickly navigate and act using your keyboard.",
+    "placeholder": "Type a command or search…",
+    "empty": "No results found.",
+    "groups": {
+      "actions": "Quick actions",
+      "navigation": "Views",
+      "tasks": "Tasks in this project",
+      "workspaces": "Workspaces"
+    },
+    "items": {
+      "newTask": "New task",
+      "toggleLanguage": "Switch language",
+      "profileSettings": "Profile settings",
+      "boardView": "Board view",
+      "listView": "List view"
+    }
   }
 }

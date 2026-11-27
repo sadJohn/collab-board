@@ -1,6 +1,17 @@
 export { Avatar, AvatarFallback, AvatarImage } from "./components/avatar";
 export { Button, type ButtonProps, buttonVariants } from "./components/button";
 export {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "./components/command";
+export {
   Dialog,
   DialogClose,
   DialogContent,

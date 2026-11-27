@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
+import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
 import { requireSession } from "../lib/route-guards";
@@ -58,6 +59,8 @@ function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <CommandPalette />
     </div>
   );
 }

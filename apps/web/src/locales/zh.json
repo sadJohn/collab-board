@@ -219,5 +219,24 @@
     "you": "我",
     "count": "{{count}} 人在线",
     "andMore": "+{{count}}"
+  },
+  "command": {
+    "title": "命令面板",
+    "description": "用键盘快速跳转和操作。",
+    "placeholder": "输入命令或搜索…",
+    "empty": "没有找到匹配结果。",
+    "groups": {
+      "actions": "快捷操作",
+      "navigation": "视图切换",
+      "tasks": "当前项目任务",
+      "workspaces": "工作区"
+    },
+    "items": {
+      "newTask": "新建任务",
+      "toggleLanguage": "切换语言",
+      "profileSettings": "个人设置",
+      "boardView": "看板视图",
+      "listView": "列表视图"
+    }
   }
 }
