@@ -396,6 +396,56 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **11.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。**验收**：四条命令全绿且零 Biome 报错。
   - **阶段十一完成标准**：配置 `REDIS_URL` 时工作台二次请求命中缓存且任务 / 项目变更后立即失效，邀请邮件经 BullMQ 异步投递并支持重试，Socket.io 多实例广播与在线成员一致；未配置 `REDIS_URL` 时应用可正常启动且业务零回归；全部测试、类型检查、规范与构建命令通过。
 
+- **第十二阶段（Phase 12）：全栈数据埋点 SDK 与产品行为分析看板**
+  - 前端自定义轻量级埋点 SDK 攒批上报，NestJS 接收后经 BullMQ `analytics` 队列削峰批量写入 Neon，并在工作台侧提供产品行为分析看板。复用第十一阶段的 Redis / BullMQ 基础设施，未配置 `REDIS_URL` 时降级为同步批量入库。
+  - **前置技术约定**
+    - **全链路架构**：前端自定义轻量级埋点 SDK（内存攒批 + 定时冲洗 + `sendBeacon` 页面卸载兜底） -> NestJS 接收接口（`202 Accepted` 异步入队） -> **BullMQ `analytics` 队列削峰** -> Worker 批量写入 Neon（`prisma.analyticsEvent.createMany`） -> 工作台分析图表展示。
+    - **隐私与数据规范**：事件统一包含 `eventName`（强类型枚举）、`properties`（结构化 JSON）、`sessionId`（前端生成的单次会话 UUID）、`userId`（可选，从服务端 Session 自动提取，绝不信任前端伪造）、`organizationId`、`path`、`clientTimestamp`。
+    - **降级兼容**：若未配置 `REDIS_URL`，接收接口直接降级调用 `prisma.analyticsEvent.createMany` 批量入库。
+  - **子任务拆解（12.1 – 12.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **12.1 数据库模型与共享事件契约（`packages/db` & `packages/shared`）**
+      - 在 `packages/db/prisma/schema.prisma` 新增 `AnalyticsEvent` 模型：
+        - `id` (String, `@id @default(cuid())`)
+        - `eventName` (String，建立索引 `@@index([organizationId, eventName, createdAt])`)
+        - `userId` (String?)
+        - `organizationId` (String?)
+        - `sessionId` (String)
+        - `path` (String)
+        - `properties` (`Json?`)
+        - `clientTimestamp` (`DateTime`，客户端事件发生时间，由上报载荷带入，与服务端 `createdAt` 区分)
+        - `createdAt` (`DateTime`, `@default(now())`)
+      - 推送 Schema 至 Neon（`db:push`）并生成 Prisma Client。
+      - 在 `@repo/shared` 定义强类型事件枚举（如 `PAGE_VIEW`、`TASK_CREATED`、`TASK_DRAGGED`、`VIEW_SWITCHED`、`COMMAND_PALETTE_OPENED`、`AVATAR_UPLOADED`）及批量上报 Zod Schema（`batchTrackSchema`：单条事件必填 `eventName` / `sessionId` / `path` / `clientTimestamp`，`properties` / `organizationId` 可选；单批限制 `1 ~ 50` 条），补充 Vitest 单元测试。
+      - **验收**：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+    - **12.2 后端埋点采集接口与 BullMQ 批量消费（`apps/server`）**
+      - 新增 `AnalyticsModule`：
+        - 注册 BullMQ `analytics` 队列与 `AnalyticsProcessor` 消费者：取出事件批次后，使用 `prisma.analyticsEvent.createMany` 一次性批量写入数据库。
+        - 实现 `POST /analytics/batch` 接口（允许匿名或已登录调用，若存在有效 BetterAuth 会话则自动注入 `userId`，否则置为 `null`）：校验载荷后推入 `analytics` 队列并立即返回 `{ accepted: true, count }`（HTTP 202）。
+        - 实现 `GET /workspaces/:organizationId/analytics`（受 `AuthGuard` 与 `OrganizationGuard` 保护）：聚合返回近 7 天事件趋势、热门功能触发排行（Top Events）及独立活跃用户数（DAU）。
+      - **验收**：`AnalyticsProcessor` 单元测试验证 `createMany` 批量调用；压测或单次发送 10 条事件，接口毫秒级返回 202 且数据库成功落库 10 条记录。
+    - **12.3 前端轻量级埋点 SDK 封装（`apps/web`）**
+      - 在 `apps/web/src/lib/tracker.ts` 实现单例 `tracker`：
+        - `track(eventName, properties)`：将事件推入内存缓冲区（附带当前路由 `path`、自动生成的 `sessionId`、当前 `activeOrganizationId`、`clientTimestamp`）。
+        - **自动冲洗机制（Flush）**：缓冲区达到 **10 条** 或距离上次发送超过 **5000ms** 时，自动异步发送批量请求（失败时将事件重新放回队列头部重试一次，防止死循环）。
+        - **页面离开兜底**：监听 `document.visibilitychange`（当状态变为 `hidden` 时），使用 `navigator.sendBeacon`（配合 `Blob(..., { type: 'application/json' })`）立即发送剩余缓冲区事件。
+      - **验收**：为 `tracker.ts` 编写 Vitest 单元测试（使用 `vi.useFakeTimers()` 测试“满 10 条立即触发”、“5 秒定时触发”以及“失败放回队列”逻辑）。
+    - **12.4 核心业务埋点接入（`apps/web`）**
+      - 在关键交互位置埋入 `tracker.track(...)`（补齐 `zh.json` & `en.json` 事件展示名称）：
+        1. **路由浏览（`PAGE_VIEW`）**：监听 TanStack Router 路由变化自动上报。
+        2. **核心业务动作**：创建任务（`TASK_CREATED`）、看板拖拽移动任务（`TASK_DRAGGED`，携带 `fromStatus`、`toStatus`）、切换看板/列表视图（`VIEW_SWITCHED`）、按下 `Cmd+K` 打开命令面板（`COMMAND_PALETTE_OPENED`）。
+      - **验收**：在页面上进行一系列操作后，观察浏览器 Network 面板，确认请求是按批次合并发送而非每次点击发一次。
+    - **12.5 工作台或独立路由：产品行为分析看板（`apps/web`）**
+      - 新增 `/analytics` 页面（或在工作台新增「数据洞察 / Analytics」Tab，并在侧边栏添加导航入口），复用第十阶段沉淀的 `shadcn/ui Chart`（Recharts）组件展示：
+        1. **独立活跃用户（DAU）与总事件数卡片**。
+        2. **功能使用热度横向柱状图（Feature Usage）**：直观对比看板拖拽、命令面板、视图切换等功能的真实使用频次。
+        3. **近 7 天用户交互趋势折线图**。
+      - **验收**：在看板拖拽几次、按几次 `Cmd+K` 后刷新分析页面，图表数据真实反映刚才的操作记录。
+    - **12.6 收尾自检**
+      - 依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+      - **验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十二完成标准**：事件经前端 SDK 攒批上报、后端 BullMQ 批量入库（无 `REDIS_URL` 时降级同步入库），`AnalyticsEvent` 表结构与 `@repo/shared` 契约一致且含 `clientTimestamp`；分析看板的 DAU、功能热度与 7 天趋势数据真实反映用户操作；全部测试、类型检查、规范与构建命令通过。
+
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
