@@ -26,6 +26,7 @@ import { listTasks, moveTask } from "../../lib/api/tasks";
 import { useActiveOrganization } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
 import { type BoardDropTarget, planTaskMove, type TaskMovePlan } from "../../lib/task-board";
+import { tracker } from "../../lib/tracker";
 import { useUiStore } from "../../stores/ui-store";
 import { TaskCard } from "../task/task-card";
 import { BoardColumn } from "./board-column";
@@ -184,6 +185,11 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
     if (!plan) {
       return;
+    }
+
+    const fromStatus = tasks.find((task) => task.id === String(active.id))?.status;
+    if (fromStatus) {
+      tracker.track("TASK_DRAGGED", { fromStatus, toStatus: plan.status });
     }
 
     moveMutation.mutate({ taskId: String(active.id), plan });

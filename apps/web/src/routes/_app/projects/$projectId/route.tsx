@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ import { ApiError } from "../../../../lib/api-client";
 import { useActiveOrganization, useSession } from "../../../../lib/auth-client";
 import { queryKeys } from "../../../../lib/query-keys";
 import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
+import { tracker } from "../../../../lib/tracker";
 import { useUiStore } from "../../../../stores/ui-store";
 
 /**
@@ -61,6 +62,23 @@ function ProjectLayout() {
 
     return () => setActiveTaskId(null);
   }, [projectId, task, setActiveTaskId]);
+
+  // Track board <-> list view switches. The initial mount seeds the ref without
+  // emitting, so only real user-driven switches (tab clicks, command palette
+  // navigation) are counted.
+  const location = useLocation();
+  const previousView = useRef<string | null>(null);
+  useEffect(() => {
+    const view = location.pathname.endsWith("/board")
+      ? "board"
+      : location.pathname.endsWith("/list")
+        ? "list"
+        : null;
+    if (view && previousView.current !== null && previousView.current !== view) {
+      tracker.track("VIEW_SWITCHED", { view });
+    }
+    previousView.current = view;
+  }, [location.pathname]);
 
   const projectQuery = useQuery({
     queryKey: queryKeys.projects.detail(organizationId ?? "", projectId),

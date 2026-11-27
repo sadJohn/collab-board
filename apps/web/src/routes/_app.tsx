@@ -5,6 +5,7 @@ import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
 import { useNotificationRealtime } from "../hooks/use-notification-realtime";
+import { usePageViewTracking } from "../hooks/use-page-view-tracking";
 import { requireSession } from "../lib/route-guards";
 import { useUiStore } from "../stores/ui-store";
 
@@ -19,6 +20,7 @@ function AppLayout() {
 
   useGlobalShortcuts();
   useNotificationRealtime();
+  usePageViewTracking();
 
   return (
     <div className="min-h-dvh bg-background text-foreground">

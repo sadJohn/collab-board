@@ -16,6 +16,7 @@ import {
 } from "@repo/shared";
 
 import { api } from "../api-client";
+import { tracker } from "../tracker";
 
 export interface TaskListParams {
   q?: string;
@@ -77,7 +78,9 @@ export async function getTask(taskId: string): Promise<TaskDto> {
 
 export async function createTask(data: CreateTaskInput): Promise<TaskDto> {
   const body = createTaskSchema.parse(data);
-  return taskDtoSchema.parse(await api.post("tasks", { json: body }).json());
+  const task = taskDtoSchema.parse(await api.post("tasks", { json: body }).json());
+  tracker.track("TASK_CREATED", { projectId: body.projectId });
+  return task;
 }
 
 export async function updateTask(taskId: string, data: UpdateTaskData): Promise<TaskDto> {

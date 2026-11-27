@@ -354,5 +354,30 @@
     },
     "markAllRead": "全部标为已读",
     "markAllReadFailed": "标记已读失败，请重试。"
+  },
+  "analytics": {
+    "title": "数据洞察",
+    "subtitle": "工作区成员近 7 天的产品使用情况",
+    "dau": "日活跃用户",
+    "dauHint": "近 7 天平均每天产生事件的去重用户数",
+    "totalEvents": "事件总数",
+    "totalEventsHint": "近 7 天上报的事件总量",
+    "featureUsage": "功能使用热度",
+    "featureUsageHint": "按事件类型聚合的触发次数",
+    "trend": "近 7 天交互趋势",
+    "trendHint": "每日事件数与活跃用户数，按 Asia/Shanghai 自然日统计",
+    "trendEvents": "事件数",
+    "trendUsers": "活跃用户",
+    "loading": "加载数据中…",
+    "loadFailed": "数据加载失败，请重试。",
+    "empty": "暂无数据，开始使用产品后这里会展示分析结果。",
+    "events": {
+      "PAGE_VIEW": "页面浏览",
+      "TASK_CREATED": "创建任务",
+      "TASK_DRAGGED": "看板拖拽任务",
+      "VIEW_SWITCHED": "切换视图",
+      "COMMAND_PALETTE_OPENED": "打开命令面板",
+      "AVATAR_UPLOADED": "上传头像"
+    }
   }
 }

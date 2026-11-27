@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import { tracker } from "../lib/tracker";
 import i18n, {
   DEFAULT_LANGUAGE,
   isSupportedLanguage,
@@ -54,10 +55,21 @@ export const useUiStore = create<UiState>()(
       },
       commandPaletteOpen: false,
       setCommandPaletteOpen: (commandPaletteOpen) => {
-        set({ commandPaletteOpen });
+        set((state) => {
+          if (commandPaletteOpen && !state.commandPaletteOpen) {
+            tracker.track("COMMAND_PALETTE_OPENED");
+          }
+          return { commandPaletteOpen };
+        });
       },
       toggleCommandPalette: () => {
-        set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen }));
+        set((state) => {
+          const next = !state.commandPaletteOpen;
+          if (next) {
+            tracker.track("COMMAND_PALETTE_OPENED");
+          }
+          return { commandPaletteOpen: next };
+        });
       },
     }),
     {

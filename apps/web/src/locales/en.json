@@ -354,5 +354,30 @@
     },
     "markAllRead": "Mark all read",
     "markAllReadFailed": "Could not mark notifications as read."
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "How your workspace has used the product over the last 7 days",
+    "dau": "Daily Active Users",
+    "dauHint": "Average distinct users generating events per day, last 7 days",
+    "totalEvents": "Total Events",
+    "totalEventsHint": "Total events reported over the last 7 days",
+    "featureUsage": "Feature Usage",
+    "featureUsageHint": "Trigger counts grouped by event type",
+    "trend": "7-Day Interaction Trend",
+    "trendHint": "Daily event and active-user counts, bucketed by Asia/Shanghai days",
+    "trendEvents": "Events",
+    "trendUsers": "Active users",
+    "loading": "Loading analytics…",
+    "loadFailed": "Could not load analytics. Try again.",
+    "empty": "No data yet. Start using the product and insights will appear here.",
+    "events": {
+      "PAGE_VIEW": "Page view",
+      "TASK_CREATED": "Task created",
+      "TASK_DRAGGED": "Task dragged on board",
+      "VIEW_SWITCHED": "View switched",
+      "COMMAND_PALETTE_OPENED": "Command palette opened",
+      "AVATAR_UPLOADED": "Avatar uploaded"
+    }
   }
 }
