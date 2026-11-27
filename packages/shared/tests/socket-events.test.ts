@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  getRoomPresencePayloadSchema,
   joinProjectRoomSchema,
   presenceUserSchema,
   projectRoomName,
   roomPresenceUpdatedPayloadSchema,
-  getRoomPresencePayloadSchema,
   SOCKET_EVENTS,
   socketPayloadSchemas,
   type TaskDto,
@@ -149,9 +149,7 @@ describe("presenceUserSchema", () => {
     expect(presenceUserSchema.safeParse({ ...validUser, id: "" }).success).toBe(false);
     expect(presenceUserSchema.safeParse({ ...validUser, name: "" }).success).toBe(false);
     expect(presenceUserSchema.safeParse({ ...validUser, email: "" }).success).toBe(false);
-    expect(presenceUserSchema.safeParse({ name: "Alice", email: "a@b.com" }).success).toBe(
-      false,
-    );
+    expect(presenceUserSchema.safeParse({ name: "Alice", email: "a@b.com" }).success).toBe(false);
   });
 
   it("rejects missing image field", () => {
@@ -180,9 +178,7 @@ describe("roomPresenceUpdatedPayloadSchema", () => {
     expect(
       roomPresenceUpdatedPayloadSchema.safeParse({ projectId: "", users: [alice] }).success,
     ).toBe(false);
-    expect(
-      roomPresenceUpdatedPayloadSchema.safeParse({ users: [alice] }).success,
-    ).toBe(false);
+    expect(roomPresenceUpdatedPayloadSchema.safeParse({ users: [alice] }).success).toBe(false);
   });
 
   it("rejects malformed user entries inside the array", () => {
