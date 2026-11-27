@@ -327,6 +327,28 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **8.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
   - **阶段八完成标准**：邮件邀请 / 链接邀请 / 站内铃铛通知三条路径全部打通，邀请接受后自动切换工作区并跳转；类型结构预留后续业务通知扩展位；全部测试、类型检查、规范与构建命令通过。
 
+- **第九阶段（Phase 9）：任务指派与评论实时推送通知（User Room + 持久化收件箱）**
+  - 任务被指派给他人、或任务下出现新评论时，通过用户私有房间实时推送通知，并写入持久化收件箱。
+  - 顶部导航铃铛合并展示业务通知与工作区邀请，支持未读红点、一键已读与点击通知跳转任务详情抽屉。
+  - **技术决策与前置约定**
+    - **用户私有房间（User Room）**：在 `@repo/shared` 新增 `userRoomName(userId)`（`user:${userId}`）。在 `ProjectsGateway` 的 `handleConnection` 生命周期中，鉴权通过的用户自动 `client.join(userRoomName(user.id))`（无需前端额外发送 join 事件）。
+    - **通知触发与防自扰规则**（`actorId === recipientId` 时严禁生成通知）：
+      1. **任务指派（`TASK_ASSIGNED`）**：创建任务时指定了 `assigneeId`（且非创建人自己），或更新任务时 `assigneeId` 变更为新的非空用户时，向新指派人发送通知。
+      2. **任务新评论（`COMMENT_ADDED`）**：某人在任务下发表评论时，向该任务的**创建人（`creatorId`）**和**当前指派人（`assigneeId`）**发送通知（去重后排除评论作者 `authorId` 本人）。
+    - **单一通知表设计（`packages/db`）**：在 Prisma Schema 新增 `Notification` 模型，使用 `Json` 字段存储不同类型通知的结构化上下文，保持表结构简洁且易于未来扩展。
+  - **子任务拆解（9.1 – 9.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **9A 数据模型与共享契约**
+      - **9.1 数据库模型并推送至 Neon（`packages/db`）**：在 `packages/db/prisma/schema.prisma` 新增 `NotificationType` 枚举（`TASK_ASSIGNED`, `COMMENT_ADDED`）与 `Notification` 模型：`id` (String, `@id @default(cuid())`)；`userId` (String, 关联 `User`，建立索引 `@@index([userId, readAt, createdAt])`)；`type` (`NotificationType`)；`payload` (`Json`，存储 `{ taskId, taskTitle, projectId, organizationId, actorName, commentSnippet? }`)；`readAt` (`DateTime?`，为 `null` 表示未读)；`createdAt` (`DateTime`, `@default(now())`)。执行 `pnpm --filter @repo/db db:push`（或 `migrate dev`）同步表结构至 Neon 并重新生成 Prisma Client；**验收**：Prisma Client 包含 `Notification` 模型及 `NotificationType` 枚举，`typecheck` 通过。
+      - **9.2 共享通知契约与 Socket 推送事件（`packages/shared`）**：定义严格的 `NotificationPayload` Zod Schema（确保读写 `Json` 字段时的端到端类型安全）以及通知 DTO 类型；在 `socket-events.ts` 新增 `userRoomName(userId)` 辅助函数与服务端推送事件 `NOTIFICATION_RECEIVED`（载荷为单条 `NotificationDto`），补齐 `SOCKET_EVENTS`、`socketPayloadSchemas` 与双端事件类型；单测覆盖合法载荷与缺字段拒绝；**验收**：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+    - **9B 后端通知模块与业务触发**
+      - **9.3 NotificationsModule 与 Socket 推送（`apps/server`）**：扩展 `EventsService` 新增 `emitToUser(userId, event, payload)`（校验载荷后向 `user:${userId}` 广播）；在 `ProjectsGateway` 的 `handleConnection` 中自动将已鉴权 Socket 加入其 `userRoomName`；新增 `NotificationsModule`（`NotificationsService` + `NotificationsController`，受 `AuthGuard` 保护）：`GET /notifications` 返回最近 30 条当前用户通知（按 `createdAt desc` 排序）及未读总数，`PATCH /notifications/:id/read` 标记单条通知为已读（校验归属权），`POST /notifications/read-all` 一键将当前用户所有未读通知标为已读，并提供内部方法 `createAndPush({ userId, type, payload })` 写库后立即调用 `eventsService.emitToUser` 实时推送；**验收**：`NotificationsService` 单元测试覆盖「写库并触发 Socket 推送、标记已读、越权操作拒绝」。
+      - **9.4 业务触发接入（`TasksService` & `CommentsService`）**：在 `TasksService`（`create` 与 `update` 分派人变更时）和 `CommentsService`（`create` 时）注入 `NotificationsService`；严格执行防自扰（排除操作者本人）与接收人去重（同一人既是创建人又是指派人时只发一条）；查询补齐 `organizationId`、`taskTitle` 与 `actorName` 后调用 `createAndPush`；**验收**：单元测试断言「指派他人触发通知、指派自己不触发、评论者同时为指派人时不重复通知」。
+    - **9C 前端实时通知**
+      - **9.5 实时接收与通知中心联动（`apps/web`）**：在全局 Socket 连接管理（或受保护根布局 Hook）中监听 `NOTIFICATION_RECEIVED`（经共享 Schema `parse` 校验），收到新通知时立即更新 `TanStack Query` 的通知列表缓存（或 `invalidateQueries`）并联动右上角铃铛未读红点；扩展第八阶段的 `useNotifications()` 聚合 Hook，将 `GET /notifications` 的持久化业务通知与 BetterAuth 待处理工作区邀请合并、按时间倒序展示，并提供顶部「全部已读 / Mark all as read」按钮（补齐 `zh.json` 与 `en.json` 文案）；点击 `TASK_ASSIGNED` / `COMMENT_ADDED` 卡片时先调用标记已读接口，再跳转至对应工作区与项目路由，并调用 `Zustand` 的 `setActiveTaskId(taskId)` 自动弹出任务详情抽屉；**验收**：双浏览器窗口实测——A 指派任务给 B 或在 B 的任务下评论，B 无需刷新即亮起未读红点，点击通知自动跳进对应项目并打开任务详情抽屉，红点消退。
+    - **9D 收尾**
+      - **9.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
+  - **阶段九完成标准**：任务指派与新评论可实时推送到接收人，铃铛未读角标即时更新，点击通知可标记已读并跳转打开对应任务抽屉；业务通知与工作区邀请在同一收件箱合并展示并按时间倒序；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
