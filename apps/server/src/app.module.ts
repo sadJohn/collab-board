@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AuthController } from "./auth/auth.controller";
 import { CommentsModule } from "./comments/comments.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { EventsModule } from "./events/events.module";
 import { MailModule } from "./mail/mail.module";
 import { NotificationsModule } from "./notifications/notifications.module";
@@ -18,6 +19,7 @@ import { UploadsModule } from "./uploads/uploads.module";
     ProjectsModule,
     TasksModule,
     CommentsModule,
+    DashboardModule,
     UploadsModule,
     MailModule,
   ],
