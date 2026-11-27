@@ -82,7 +82,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   });
 
   const membersById = useMemo(
-    () => new Map((membersQuery.data ?? []).map((member) => [member.userId, member.name])),
+    () => new Map((membersQuery.data ?? []).map((member) => [member.userId, member])),
     [membersQuery.data],
   );
 
@@ -254,10 +254,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
         <DragOverlay>
           {activeTask ? (
-            <TaskCard
-              assigneeName={membersById.get(activeTask.assigneeId ?? "")}
-              task={activeTask}
-            />
+            <TaskCard assignee={membersById.get(activeTask.assigneeId ?? "")} task={activeTask} />
           ) : null}
         </DragOverlay>
       </DndContext>

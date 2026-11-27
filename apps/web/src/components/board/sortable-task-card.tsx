@@ -4,10 +4,11 @@ import type { TaskDto } from "@repo/shared";
 import { motion } from "motion/react";
 
 import { TaskCard } from "../task/task-card";
+import type { UserAvatarUser } from "../user-avatar";
 
 interface SortableTaskCardProps {
   task: TaskDto;
-  assigneeName?: string;
+  assignee?: UserAvatarUser;
   /** Disabled while dragging or during the post-drop cooldown to avoid double animation. */
   suppressLayout: boolean;
   onOpen?: () => void;
@@ -15,7 +16,7 @@ interface SortableTaskCardProps {
 
 export function SortableTaskCard({
   task,
-  assigneeName,
+  assignee,
   suppressLayout,
   onOpen,
 }: SortableTaskCardProps) {
@@ -37,7 +38,7 @@ export function SortableTaskCard({
         onClick={onOpen}
         transition={{ duration: 0.15 }}
       >
-        <TaskCard assigneeName={assigneeName} task={task} />
+        <TaskCard assignee={assignee} task={task} />
       </motion.div>
     </div>
   );

@@ -8,6 +8,7 @@ import { createComment, deleteComment, listComments } from "../../lib/api/commen
 import { listMembers } from "../../lib/api/members";
 import { useActiveOrganization, useSession } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
+import { UserAvatar } from "../user-avatar";
 
 interface TaskCommentsProps {
   taskId: string;
@@ -88,13 +89,20 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
         <ul className="flex flex-col gap-3">
           {comments.map((comment: CommentDto) => {
             const canDelete = isAdmin || comment.authorId === currentUserId;
+            const author = membersById.get(comment.authorId);
 
             return (
               <li className="rounded-lg border p-3" key={comment.id}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-xs">
-                    {membersById.get(comment.authorId)?.name ?? comment.authorId}
-                  </span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <UserAvatar
+                      size="sm"
+                      user={author ?? { id: comment.authorId, name: comment.authorId }}
+                    />
+                    <span className="truncate font-medium text-xs">
+                      {author?.name ?? comment.authorId}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <time className="text-muted-foreground text-xs">
                       {timeFormatter.format(new Date(comment.createdAt))}

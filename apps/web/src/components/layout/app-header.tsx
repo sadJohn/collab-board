@@ -12,6 +12,7 @@ import {
 } from "../../lib/auth-client";
 import { useUiStore } from "../../stores/ui-store";
 import { LanguageSwitcher } from "../language-switcher";
+import { UserAvatar } from "../user-avatar";
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -84,6 +85,7 @@ export function AppHeader() {
 
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
+          {session.data?.user ? <UserAvatar size="sm" user={session.data.user} /> : null}
           <span className="hidden text-muted-foreground text-xs sm:inline">
             {session.data?.user.email}
           </span>

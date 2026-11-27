@@ -19,6 +19,7 @@ import { useActiveOrganization } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
 import { FormTextField } from "../form/form-text-field";
 import { FormTextareaField } from "../form/form-textarea-field";
+import { UserAvatar } from "../user-avatar";
 
 type TaskFormValues = z.infer<typeof updateTaskSchema>;
 
@@ -126,6 +127,10 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
   }
 
   const members = membersQuery.data ?? [];
+  const watchedAssigneeId = form.watch("assigneeId");
+  const selectedAssignee = watchedAssigneeId
+    ? members.find((member) => member.userId === watchedAssigneeId)
+    : undefined;
 
   return (
     <form
@@ -165,9 +170,12 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="font-medium text-sm" htmlFor="task-assignee">
-          {t("task.fields.assignee")}
-        </label>
+        <div className="flex items-center gap-2">
+          {selectedAssignee ? <UserAvatar size="sm" user={selectedAssignee} /> : null}
+          <label className="font-medium text-sm" htmlFor="task-assignee">
+            {t("task.fields.assignee")}
+          </label>
+        </div>
         <Controller
           control={form.control}
           name="assigneeId"

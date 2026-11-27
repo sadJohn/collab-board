@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import type { OrganizationMember } from "../../lib/api/members";
 import { QuickCreateTask } from "./quick-create-task";
 import { SortableTaskCard } from "./sortable-task-card";
 
@@ -18,7 +19,7 @@ interface BoardColumnProps {
   tasks: TaskDto[];
   projectId: string;
   suppressLayout: boolean;
-  membersById: Map<string, string>;
+  membersById: Map<string, OrganizationMember>;
   onOpenTask: (taskId: string) => void;
 }
 
@@ -70,7 +71,7 @@ export function BoardColumn({
         >
           {tasks.map((task) => (
             <SortableTaskCard
-              assigneeName={membersById.get(task.assigneeId ?? "")}
+              assignee={membersById.get(task.assigneeId ?? "")}
               key={task.id}
               onOpen={() => onOpenTask(task.id)}
               suppressLayout={suppressLayout}
