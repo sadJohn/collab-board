@@ -3,9 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { organization } from "better-auth/plugins";
 
-import { MailService } from "../mail/mail.service";
-
-const mailService = new MailService();
+import { mailQueueProducer } from "../mail/mail-queue.producer";
 
 /** Base URL of the web app, used to build the invitation landing link. */
 function frontendUrl(): string {
@@ -51,9 +49,10 @@ export const auth = betterAuth({
   trustedOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(","),
   plugins: [
     organization({
-      // Resend when configured, otherwise MailService logs the invitation URL.
+      // With Redis configured this enqueues a BullMQ job; otherwise the
+      // producer falls back to sending (or logging) the invitation inline.
       sendInvitationEmail: async (data) => {
-        await mailService.sendWorkspaceInvitationEmail({
+        await mailQueueProducer.enqueueInvitation({
           to: data.email,
           inviterName: data.inviter.user.name,
           organizationName: data.organization.name,

@@ -91,16 +91,17 @@ export class MailService {
       });
 
       if (error) {
-        this.logger.error(`Resend 发送邀请邮件失败：${error.message}`);
-        this.logFallback(input);
-        return;
+        throw new Error(error.message);
       }
-
-      this.logger.log(`邀请邮件已发送至 ${input.to}（工作区：${input.organizationName}）`);
     } catch (error) {
-      this.logger.error(`Resend 发送邀请邮件异常：${(error as Error).message}`);
+      // Keep the local-dev fallback log, then rethrow so BullMQ can retry the
+      // job (the direct/producer path swallows it to keep invitations usable).
+      this.logger.error(`Resend 发送邀请邮件失败：${(error as Error).message}`);
       this.logFallback(input);
+      throw error;
     }
+
+    this.logger.log(`邀请邮件已发送至 ${input.to}（工作区：${input.organizationName}）`);
   }
 
   private logFallback(input: WorkspaceInvitationEmailInput): void {

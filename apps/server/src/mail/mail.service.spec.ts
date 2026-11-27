@@ -69,13 +69,27 @@ describe("MailService.sendWorkspaceInvitationEmail", () => {
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(invitation.to));
   });
 
-  it("Resend 返回错误时记录错误并降级输出邀请链接", async () => {
+  it("Resend 返回错误时记录错误、降级输出邀请链接并抛错供队列重试", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
     mocks.send.mockResolvedValue({ data: null, error: { message: "boom" } });
 
-    await new MailService().sendWorkspaceInvitationEmail(invitation);
+    await expect(new MailService().sendWorkspaceInvitationEmail(invitation)).rejects.toThrow(
+      "boom",
+    );
 
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(invitation.invitationUrl));
+  });
+
+  it("Resend 调用抛异常时记录错误、降级输出邀请链接并重新抛出", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+    mocks.send.mockRejectedValue(new Error("network down"));
+
+    await expect(new MailService().sendWorkspaceInvitationEmail(invitation)).rejects.toThrow(
+      "network down",
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("network down"));
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(invitation.invitationUrl));
   });
 });
