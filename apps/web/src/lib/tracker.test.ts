@@ -1,7 +1,8 @@
 import type { AnalyticsTrackEvent } from "@repo/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { Tracker } from "./tracker";
+import { queryClient } from "./query-client";
+import { sessionQueryOptions } from "./session";
+import { readActiveOrganizationId, Tracker } from "./tracker";
 
 const SESSION_ID = "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed";
 const TIMESTAMP = new Date("2026-01-01T00:00:00.000Z");
@@ -69,6 +70,29 @@ describe("Tracker", () => {
 
       const batch = send.mock.calls[0][0] as AnalyticsTrackEvent[];
       expect(batch[0].organizationId).toBeUndefined();
+    });
+  });
+
+  describe("active organization context", () => {
+    afterEach(() => {
+      queryClient.setQueryData(sessionQueryOptions.queryKey, null);
+    });
+
+    it("reads activeOrganizationId from the nested BetterAuth session shape", () => {
+      queryClient.setQueryData(sessionQueryOptions.queryKey, {
+        session: { activeOrganizationId: "org_abc" },
+        user: { id: "user_1" },
+      } as never);
+
+      expect(readActiveOrganizationId()).toBe("org_abc");
+    });
+
+    it("returns null when the session or its activeOrganizationId is missing", () => {
+      queryClient.setQueryData(sessionQueryOptions.queryKey, { session: {}, user: {} } as never);
+      expect(readActiveOrganizationId()).toBeNull();
+
+      queryClient.setQueryData(sessionQueryOptions.queryKey, null);
+      expect(readActiveOrganizationId()).toBeNull();
     });
   });
 

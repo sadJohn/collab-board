@@ -69,11 +69,17 @@ function readOrCreateSessionId(): string {
   return id;
 }
 
-function readActiveOrganizationId(): string | null {
-  const session = queryClient.getQueryData<{ activeOrganizationId?: string | null }>(
-    sessionQueryOptions.queryKey,
-  );
-  return session?.activeOrganizationId ?? null;
+/**
+ * BetterAuth's `getSession()` resolves to `{ session, user }`, so the active
+ * organization lives under `session.activeOrganizationId` — not at the top
+ * level. Reading the wrong level silently produced `organizationId: null` on
+ * every event, which made the workspace-scoped analytics view always empty.
+ */
+export function readActiveOrganizationId(): string | null {
+  const data = queryClient.getQueryData<{
+    session?: { activeOrganizationId?: string | null } | null;
+  }>(sessionQueryOptions.queryKey);
+  return data?.session?.activeOrganizationId ?? null;
 }
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
