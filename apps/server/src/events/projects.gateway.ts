@@ -2,6 +2,7 @@ import { Inject } from "@nestjs/common";
 import {
   ConnectedSocket,
   MessageBody,
+  type OnGatewayConnection,
   type OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
@@ -19,6 +20,7 @@ import {
   roomPresenceUpdatedPayloadSchema,
   type ServerToClientEvents,
   SOCKET_EVENTS,
+  userRoomName,
 } from "@repo/shared";
 import { fromNodeHeaders } from "better-auth/node";
 import type { DefaultEventsMap, Server, Socket } from "socket.io";
@@ -63,13 +65,25 @@ const PROJECT_ROOM_PREFIX = "project:";
  * see the Phase 7 tech-decision notes.
  */
 @WebSocketGateway({ cors: { origin: corsOrigin, credentials: true } })
-export class ProjectsGateway implements OnGatewayInit {
+export class ProjectsGateway implements OnGatewayInit, OnGatewayConnection {
   constructor(
     private readonly events: EventsService,
     @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
   ) {}
 
   private server: GatewayServer | null = null;
+
+  /**
+   * Every authenticated socket is dropped into its own private room
+   * `user:${userId}` immediately after the handshake auth middleware succeeds,
+   * so direct notifications can reach the user without an explicit join.
+   */
+  handleConnection(socket: AuthenticatedSocket): void {
+    const userId = socket.data.user?.id;
+    if (userId) {
+      void socket.join(userRoomName(userId));
+    }
+  }
 
   afterInit(server: GatewayServer): void {
     this.server = server;

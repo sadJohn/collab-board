@@ -5,6 +5,7 @@ import {
   type ServerToClientEvents,
   type SocketPayloadMap,
   socketPayloadSchemas,
+  userRoomName,
 } from "@repo/shared";
 import type { Server } from "socket.io";
 import type { ZodType } from "zod";
@@ -43,15 +44,36 @@ export class EventsService {
     event: E,
     payload: SocketPayloadMap[E],
   ): void {
+    this.broadcastToRoom(projectRoomName(projectId), event, payload);
+  }
+
+  /**
+   * Validates `payload` and broadcasts it to a single user's private room
+   * `user:${userId}`. Used for direct notifications (task assignment, comments).
+   */
+  emitToUser<E extends BroadcastableEvent>(
+    userId: string,
+    event: E,
+    payload: SocketPayloadMap[E],
+  ): void {
+    this.broadcastToRoom(userRoomName(userId), event, payload);
+  }
+
+  /** Shared broadcast: schema-validate, then emit to the named room. */
+  private broadcastToRoom<E extends BroadcastableEvent>(
+    roomName: string,
+    event: E,
+    payload: SocketPayloadMap[E],
+  ): void {
     const schema = socketPayloadSchemas[event] as unknown as ZodType<unknown>;
     const parsed = schema.parse(payload);
 
     if (!this.server) {
-      this.logger.warn(`Socket server not ready, dropped "${event}" for project ${projectId}`);
+      this.logger.warn(`Socket server not ready, dropped "${event}" for room ${roomName}`);
       return;
     }
 
-    const room = this.server.to(projectRoomName(projectId));
+    const room = this.server.to(roomName);
     const broadcast = room.emit as unknown as Broadcast;
     // Keep `room` as the receiver: the operator's emit relies on `this.adapter`.
     broadcast.call(room, event, parsed);

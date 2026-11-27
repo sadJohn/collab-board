@@ -473,3 +473,28 @@ describe("ProjectsGateway presence aggregation", () => {
     ).resolves.toEqual({ ok: false, error: "FORBIDDEN" });
   });
 });
+
+describe("ProjectsGateway user room auto-join", () => {
+  beforeEach(() => {
+    getSession.mockReset();
+  });
+
+  it("joins the user's private room on connection", () => {
+    const { gateway } = createGateway();
+    const { socket, join } = createPresenceSocket({ id: "user_1" });
+
+    gateway.handleConnection(socket);
+
+    expect(join).toHaveBeenCalledExactlyOnceWith("user:user_1");
+  });
+
+  it("skips joining when the socket has no authenticated user", () => {
+    const { gateway } = createGateway();
+    const join = vi.fn();
+    const socket = { data: {}, join } as unknown as AuthenticatedSocket;
+
+    gateway.handleConnection(socket);
+
+    expect(join).not.toHaveBeenCalled();
+  });
+});
