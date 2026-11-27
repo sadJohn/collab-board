@@ -21,6 +21,10 @@ export const COMMENT_CONTENT_MAX_LENGTH = 2000;
 
 export const SEARCH_QUERY_MAX_LENGTH = 200;
 
+/** Avatar uploads: presigned direct upload to S3-compatible object storage. */
+export const AVATAR_MAX_FILE_SIZE = 2 * 1024 * 1024;
+export const AVATAR_ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 export const DEFAULT_TASK_SORT_FIELD = "position";
 export const DEFAULT_SORT_ORDER = "asc";
 export const DEFAULT_PAGE = 1;

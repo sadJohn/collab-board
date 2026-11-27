@@ -3,4 +3,5 @@ export * from "./comment.js";
 export * from "./dto.js";
 export * from "./project.js";
 export * from "./task.js";
+export * from "./upload.js";
 export * from "./workspace.js";
