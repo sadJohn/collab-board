@@ -373,6 +373,29 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **10.8 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
   - **阶段十完成标准**：未登录访问 `/` 展示欢迎页，已登录访问 `/` 直达个人工作台；工作台指标、我的任务、项目进度、最近动态与两个图表均由 `GET /dashboard` 驱动，并在协作事件下实时刷新；点击我的任务可跳转对应项目并自动打开任务详情抽屉；全部测试、类型检查、规范与构建命令通过。
 
+- **第十一阶段（Phase 11）：Redis 缓存、BullMQ 消息队列与 Socket.io 横向扩展**
+  - 为工作台聚合接口增加 Redis 旁路缓存，将工作区邀请邮件改为 BullMQ 异步消费，并通过 Redis Adapter 让 Socket.io 支持多实例广播。
+  - 所有 Redis 能力均可缺省：未配置 `REDIS_URL` 时应用照常启动，缓存旁路、邮件直发、Socket.io 使用内存适配器。
+  - **技术决策与前置约定**
+    - **Serverless Redis 接入（Upstash 兼容）**：统一使用 `ioredis` 连接 `REDIS_URL`（支持 `rediss://` TLS 连接，兼容 Upstash 云端 Redis 与本地 Redis）。**连接职责分离**：缓存客户端设置 `maxRetriesPerRequest: 1` 与 `enableOfflineQueue: false`，确保 Redis 不可用时立即降级而不是挂起请求；BullMQ 专用连接必须设置 `maxRetriesPerRequest: null`；Socket.io 的 pub / sub 使用两个独立客户端，不能与缓存或队列复用同一实例。
+    - **优雅降级原则**：`.env` 未配置（空字符串）`REDIS_URL` 时，`RedisModule` 不建立连接、`MailQueueModule` 不注册（避免 BullMQ 强制连库导致启动失败）、Socket.io 保留默认内存适配器；缓存读写异常只记录日志并回源数据库，绝不影响业务请求。
+    - **核心三大落地场景**：
+      1. **Cache-Aside（旁路缓存）**：按「工作区 + 用户」缓存工作台聚合结果（`dashboard:{organizationId}:v{version}:{userId}`，TTL 60 秒）；任务 / 项目写操作通过递增工作区版本号批量失效，禁止使用 `SCAN` 或通配 `DEL`。
+      2. **BullMQ 异步任务队列**：将工作区邀请邮件发送拆分为 Producer（入队）与 Consumer（后台 Worker 消费 + 指数退避重试 3 次）。
+      3. **Socket.io Redis Adapter**：使用 `@socket.io/redis-adapter` 打通多实例房间广播与跨实例在线成员聚合。
+  - **子任务拆解（11.1 – 11.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **11A Redis 基础设施**
+      - **11.1 Redis 基础设施与全局模块（`apps/server`）**：安装 `ioredis`、`@nestjs/bullmq@^12`（兼容当前 Nest 12）、`bullmq@^6`、`@socket.io/redis-adapter`；`.env.example` 增加 `REDIS_URL=""`（留空即关闭全部 Redis 能力，并附 Upstash `rediss://` 示例注释）；新增全局 `RedisModule` 与 `RedisService`：仅在 `REDIS_URL` 非空时创建客户端，封装类型安全的 `getJson<T>(key)`、`setJson<T>(key, value, ttlSeconds)`、`del(key)`、`incr(key)`，`JSON.parse` 失败时删除脏键并返回 `null`，所有 Redis 异常记录日志后向上返回降级结果，并在 `onModuleDestroy` 中优雅关闭连接。**验收**：`RedisService` 单元测试（mock `ioredis`，不依赖真实 Redis）覆盖序列化读写、TTL、脏数据清理、Redis 异常降级与无 `REDIS_URL` 时的安全空实现。
+    - **11B 工作台缓存**
+      - **11.2 工作台统计接口接入 Redis 旁路缓存（`apps/server`）**：在 `DashboardService.getDashboard(organizationId, userId)`（`apps/server/src/dashboard/dashboard.service.ts`）中接入 `RedisService`：缓存键为 `dashboard:{organizationId}:v{version}:{userId}`，其中 `version` 读取 `dashboard:ver:{organizationId}`（不存在视为 `0`），TTL 60 秒；命中直接返回，未命中查询 Prisma 后写缓存；在 `TasksService` 的 `create`、`update`、`move`、`delete` 与 `ProjectsService` 的项目创建 / 更新 / 删除成功后调用 `incr("dashboard:ver:{organizationId}")` 使该工作区所有用户缓存立即失效（覆盖指标、我的任务、项目进度与图表），避免数据延迟。**验收**：单元测试验证「首次请求查库并写缓存、二次请求命中缓存不查库、任务或项目变更后版本号递增导致缓存失效、Redis 不可用时回源数据库且请求成功」。
+    - **11C 异步队列与横向扩展**
+      - **11.3 BullMQ 异步邮件队列（`apps/server`）**：在 `AppModule` 中仅当 `REDIS_URL` 非空时注册 `BullModule.forRootAsync`（`maxRetriesPerRequest: null`）与 `MailQueueModule`；注册 `mail` 队列，定义严格类型的任务载荷 `SendInvitationJobData`，默认重试策略 `attempts: 3`、`backoff: { type: "exponential", delay: 2000 }`；新增 `MailProcessor`（`@Processor("mail")`）调用 `MailService.sendWorkspaceInvitationEmail`，失败时抛错触发重试，并在日志中打印 Job ID、`job.attemptsMade` 与执行结果。**注意 DI 边界**：`apps/server/src/auth/auth.ts` 在模块加载时直接构造 `MailService`（不在 Nest 容器内），因此改造 `sendInvitationEmail` 钩子时使用不依赖 DI 的 `MailQueueProducer` 单例（惰性创建 BullMQ `Queue`，与 Worker 共用同一连接工厂）；未配置 `REDIS_URL` 时 Producer 直接调用 `MailService`，保持现有行为；Producer 需暴露 `close()` 并由 `MailQueueModule` 的关闭钩子调用，避免进程退出时连接悬挂。邮件为「至少一次」投递，重复发送可接受，如后续需要严格幂等再引入 Job 去重键。**验收**：`MailProcessor` 单元测试验证正常消费与失败抛错重试；Producer 在无 `REDIS_URL` 时直发；本地联调可见入队 / 消费日志。
+      - **11.4 Socket.io 接入 Redis Pub/Sub 适配器（`apps/server`）**：创建 `RedisIoAdapter`（继承 `@nestjs/platform-socket.io` 的 `IoAdapter`）：存在 `REDIS_URL` 时创建独立 `pubClient` 与 `subClient`（`ioredis`）并 `createAdapter(pubClient, subClient)`，为两个客户端绑定 `error` 日志，关闭应用时统一 `quit()`；否则沿用默认内存适配器。在 `apps/server/src/main.ts` 的 `app.listen` 之前调用 `app.useWebSocketAdapter(redisIoAdapter)`。**注意**：多实例下 Phase 7 的 `fetchSockets()` 在线成员聚合会返回全部实例的 Socket，需复测按 `userId` 去重。**验收**：启动日志确认适配器初始化结果；两个后端实例下看板拖拽、通知推送与在线成员列表均一致。
+    - **11D 联调与收尾**
+      - **11.5 Upstash 控制台与端到端验证**：在 `.env` 填入 Upstash 的 `REDIS_URL` 后重启后端：连续刷新两次工作台首页，确认第二次命中 Redis 缓存；发出一次工作区邀请，观察 BullMQ 入队 / 消费日志，并在 Upstash Data Browser 中看到 `dashboard:*` 缓存键与 `bull:mail:*` 队列键；临时清空 `REDIS_URL` 重启，确认应用正常启动且业务零回归。**注意**：BullMQ Worker 的阻塞轮询会持续消耗 Upstash 免费额度，日常开发优先使用本地 Redis，云端仅用于部署验证。**验收**：键结构清晰可见，四条核心链路（缓存、邮件、通知、看板）零回归。
+      - **11.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。**验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十一完成标准**：配置 `REDIS_URL` 时工作台二次请求命中缓存且任务 / 项目变更后立即失效，邀请邮件经 BullMQ 异步投递并支持重试，Socket.io 多实例广播与在线成员一致；未配置 `REDIS_URL` 时应用可正常启动且业务零回归；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
