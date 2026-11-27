@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { taskStatusSchema } from "./enums.js";
 import { commentDtoSchema, taskDtoSchema } from "./schemas/dto.js";
+import { notificationDtoSchema } from "./schemas/notification.js";
 
 /**
  * Socket.IO contract shared by `apps/server` (gateway) and `apps/web` (client).
@@ -16,6 +17,7 @@ export const SOCKET_EVENTS = {
   COMMENT_DELETED: "comment:deleted",
   ROOM_PRESENCE_UPDATED: "presence:updated",
   GET_ROOM_PRESENCE: "presence:get",
+  NOTIFICATION_RECEIVED: "notification:received",
 } as const;
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS;
@@ -23,6 +25,9 @@ export type SocketEventName = (typeof SOCKET_EVENTS)[SocketEventKey];
 
 /** Every project gets its own Socket.IO room. */
 export const projectRoomName = (projectId: string): string => `project:${projectId}`;
+
+/** Every authenticated user gets a private room for direct notifications. */
+export const userRoomName = (userId: string): string => `user:${userId}`;
 
 export const joinProjectRoomSchema = z.object({
   projectId: z.string().min(1, "projectId 不能为空"),
@@ -95,6 +100,10 @@ export const getRoomPresencePayloadSchema = z.object({
 });
 export type GetRoomPresencePayload = z.infer<typeof getRoomPresencePayloadSchema>;
 
+/** A single persisted notification pushed to its recipient's private room. */
+export const notificationReceivedPayloadSchema = notificationDtoSchema;
+export type NotificationReceivedPayload = z.infer<typeof notificationReceivedPayloadSchema>;
+
 /** Runtime validation map, mainly used by the gateway and tests. */
 export const socketPayloadSchemas = {
   [SOCKET_EVENTS.TASK_CREATED]: taskCreatedPayloadSchema,
@@ -105,6 +114,7 @@ export const socketPayloadSchemas = {
   [SOCKET_EVENTS.COMMENT_DELETED]: commentDeletedPayloadSchema,
   [SOCKET_EVENTS.ROOM_PRESENCE_UPDATED]: roomPresenceUpdatedPayloadSchema,
   [SOCKET_EVENTS.GET_ROOM_PRESENCE]: getRoomPresencePayloadSchema,
+  [SOCKET_EVENTS.NOTIFICATION_RECEIVED]: notificationReceivedPayloadSchema,
 } as const;
 
 export type SocketPayloadMap = {
@@ -123,6 +133,7 @@ export interface ServerToClientEvents {
   [SOCKET_EVENTS.COMMENT_ADDED]: (payload: CommentAddedPayload) => void;
   [SOCKET_EVENTS.COMMENT_DELETED]: (payload: CommentDeletedPayload) => void;
   [SOCKET_EVENTS.ROOM_PRESENCE_UPDATED]: (payload: RoomPresenceUpdatedPayload) => void;
+  [SOCKET_EVENTS.NOTIFICATION_RECEIVED]: (payload: NotificationReceivedPayload) => void;
 }
 
 export interface ClientToServerEvents {
