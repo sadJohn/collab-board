@@ -90,6 +90,15 @@
       "or": "or",
       "failed": "GitHub sign-in failed. Try again."
     },
+    "verification": {
+      "banner": "Your email isn't verified yet. Open the link in the verification email to finish.",
+      "resend": "Resend verification email",
+      "resending": "Sending…",
+      "resendIn": "Resend in {{seconds}}s",
+      "sent": "Verification email sent. Check your inbox.",
+      "failed": "Couldn't send the verification email. Try again.",
+      "success": "Email verified"
+    },
     "email": "Email",
     "password": "Password",
     "signIn": {

@@ -90,6 +90,15 @@
       "or": "或",
       "failed": "GitHub 登录失败，请重试。"
     },
+    "verification": {
+      "banner": "你的邮箱尚未验证。请查收验证邮件并点击链接完成验证。",
+      "resend": "重新发送验证邮件",
+      "resending": "发送中…",
+      "resendIn": "{{seconds}} 秒后可重发",
+      "sent": "验证邮件已发送，请查收。",
+      "failed": "验证邮件发送失败，请稍后重试。",
+      "success": "邮箱验证成功"
+    },
     "email": "邮箱",
     "password": "密码",
     "signIn": {

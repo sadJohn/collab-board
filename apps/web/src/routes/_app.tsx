@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-
+import { EmailVerificationBanner } from "../components/auth/email-verification-banner";
 import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
@@ -69,6 +69,7 @@ function AppLayout() {
         </aside>
 
         <main className="min-w-0 flex-1">
+          <EmailVerificationBanner />
           <Outlet />
         </main>
       </div>
