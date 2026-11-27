@@ -10,6 +10,12 @@
       "docs": "Docs"
     }
   },
+  "welcome": {
+    "title": "Real-time collaboration, with every task in sight.",
+    "subtitle": "Boards, lists, a command palette and live notifications keep your team in sync and shipping.",
+    "getStarted": "Get started",
+    "signIn": "Sign in"
+  },
   "taskStatus": {
     "BACKLOG": "Backlog",
     "TODO": "To do",

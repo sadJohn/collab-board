@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { HomePage } from "../../components/home-page";
-
+/** Legacy entry point kept as a bookmark-safe redirect to the dashboard. */
 export const Route = createFileRoute("/_app/home")({
-  component: HomePage,
+  beforeLoad: () => {
+    throw redirect({ to: "/dashboard" });
+  },
 });

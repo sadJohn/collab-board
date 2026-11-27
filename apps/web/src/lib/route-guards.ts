@@ -22,6 +22,6 @@ export async function redirectIfAuthenticated(queryClient: QueryClient) {
   const session = await queryClient.query({ ...sessionQueryOptions, staleTime: "static" });
 
   if (session) {
-    throw redirect({ to: "/home" });
+    throw redirect({ to: "/dashboard" });
   }
 }

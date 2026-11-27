@@ -28,7 +28,7 @@ function LoginPage() {
       return;
     }
 
-    navigate({ to: "/home" });
+    navigate({ to: "/dashboard" });
   }
 
   return (

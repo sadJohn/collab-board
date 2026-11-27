@@ -10,6 +10,12 @@
       "docs": "文档"
     }
   },
+  "welcome": {
+    "title": "实时协作，任务进度一目了然。",
+    "subtitle": "看板、列表、命令面板与实时通知，让团队保持同步、专注交付。",
+    "getStarted": "开始使用",
+    "signIn": "登录"
+  },
   "taskStatus": {
     "BACKLOG": "待办池",
     "TODO": "待处理",

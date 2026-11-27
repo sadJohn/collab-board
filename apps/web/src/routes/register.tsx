@@ -16,7 +16,7 @@ function RegisterPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-6">
       <div className="rounded-xl border bg-card p-6 shadow-xs">
-        <RegisterForm onSuccess={() => navigate({ to: "/home" })} />
+        <RegisterForm onSuccess={() => navigate({ to: "/dashboard" })} />
       </div>
       <p className="text-center text-muted-foreground text-sm">
         {t("auth.signUp.haveAccount")}{" "}
