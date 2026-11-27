@@ -1,5 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
+import { AnalyticsModule } from "./analytics/analytics.module";
+import { AnalyticsQueueModule } from "./analytics/analytics-queue.module";
 import { AppController } from "./app.controller";
 import { AuthController } from "./auth/auth.controller";
 import { CommentsModule } from "./comments/comments.module";
@@ -26,6 +28,7 @@ const redisModules = isRedisEnabled()
         useFactory: () => ({ connection: bullConnectionOptions() }),
       }),
       MailQueueModule,
+      AnalyticsQueueModule,
     ]
   : [];
 
@@ -39,6 +42,7 @@ const redisModules = isRedisEnabled()
     TasksModule,
     CommentsModule,
     DashboardModule,
+    AnalyticsModule,
     UploadsModule,
     MailModule,
     ...redisModules,
