@@ -5,6 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Real-time collaborative task and project board" />
     <title>Collab Board</title>
+    <!--
+      FOUC guard: paints the persisted theme before the CSS and app bundle load.
+      Mirrors `useUiStore` (zustand persist, key "collab-board.ui") and
+      `lib/theme.ts`; keep the preference values and storage key in sync.
+    -->
+    <script>
+      (() => {
+        let preference = "system";
+        try {
+          const raw = localStorage.getItem("collab-board.ui");
+          const stored = raw ? JSON.parse(raw)?.state?.theme : null;
+          if (stored === "light" || stored === "dark" || stored === "system") {
+            preference = stored;
+          }
+        } catch {
+          preference = "system";
+        }
+        const dark =
+          preference === "dark" ||
+          (preference === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
