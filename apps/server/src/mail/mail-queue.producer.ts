@@ -6,40 +6,56 @@ import { MailService } from "./mail.service";
 import {
   MAIL_JOB_OPTIONS,
   MAIL_QUEUE,
+  type MailJobData,
   SEND_INVITATION_JOB,
+  SEND_RESET_PASSWORD_JOB,
+  SEND_VERIFICATION_JOB,
   type SendInvitationJobData,
+  type SendResetPasswordJobData,
+  type SendVerificationJobData,
 } from "./mail-queue.constants";
 
+/** Resolves the recipient for either the invitation or the auth-email payload. */
+function recipientOf(data: MailJobData): string {
+  return "email" in data ? data.email : data.to;
+}
+
 /**
- * DI-free singleton used by the BetterAuth `sendInvitationEmail` hook.
+ * DI-free singleton used by the BetterAuth `sendInvitationEmail`,
+ * `sendVerificationEmail` and `sendResetPassword` hooks.
  *
  * Why not a Nest provider: `apps/server/src/auth/auth.ts` builds the BetterAuth
  * instance at module load time, outside the Nest container, so it cannot inject
  * `MailService` / `Queue`. This producer lazily creates its BullMQ `Queue`
  * (sharing `createBullConnection` with the Nest worker) and falls back to a
- * direct `MailService` call when `REDIS_URL` is empty — keeping Phase 8's
- * behavior intact for local development.
+ * direct `MailService` call when `REDIS_URL` is empty — keeping local
+ * development working without Redis.
  */
 class MailQueueProducer {
   private readonly logger = new Logger(MailQueueProducer.name);
   private readonly mailService = new MailService();
-  private queue: Queue<SendInvitationJobData> | null = null;
+  private queue: Queue<MailJobData> | null = null;
   private connection: ReturnType<typeof createBullConnection> | null = null;
 
   /** Enqueues the invitation email, or sends it inline when Redis is disabled. */
   async enqueueInvitation(input: SendInvitationJobData): Promise<void> {
-    if (!isRedisEnabled()) {
-      await this.sendDirect(input);
-      return;
-    }
+    await this.enqueue(SEND_INVITATION_JOB, input, () =>
+      this.mailService.sendWorkspaceInvitationEmail(input),
+    );
+  }
 
-    try {
-      const job = await this.getQueue().add(SEND_INVITATION_JOB, input, MAIL_JOB_OPTIONS);
-      this.logger.log(`邀请邮件已入队：job ${job.id ?? "?"} -> ${input.to}`);
-    } catch (error) {
-      this.logger.error(`邀请邮件入队失败，降级为直接发送：${(error as Error).message}`);
-      await this.sendDirect(input);
-    }
+  /** Enqueues the email-verification link, or sends it inline without Redis. */
+  async enqueueVerification(input: SendVerificationJobData): Promise<void> {
+    await this.enqueue(SEND_VERIFICATION_JOB, input, () =>
+      this.mailService.sendVerificationEmail(input),
+    );
+  }
+
+  /** Enqueues the password-reset link, or sends it inline without Redis. */
+  async enqueueResetPassword(input: SendResetPasswordJobData): Promise<void> {
+    await this.enqueue(SEND_RESET_PASSWORD_JOB, input, () =>
+      this.mailService.sendResetPasswordEmail(input),
+    );
   }
 
   /** Closes the queue and its externally-owned ioredis connection on shutdown. */
@@ -67,12 +83,31 @@ class MailQueueProducer {
     }
   }
 
-  private getQueue(): Queue<SendInvitationJobData> {
+  private async enqueue(
+    jobName: string,
+    data: MailJobData,
+    sendDirect: () => Promise<void>,
+  ): Promise<void> {
+    if (!isRedisEnabled()) {
+      await this.runDirect(jobName, data, sendDirect);
+      return;
+    }
+
+    try {
+      const job = await this.getQueue().add(jobName, data, MAIL_JOB_OPTIONS);
+      this.logger.log(`${jobName} 邮件已入队：job ${job.id ?? "?"} -> ${recipientOf(data)}`);
+    } catch (error) {
+      this.logger.error(`${jobName} 邮件入队失败，降级为直接发送：${(error as Error).message}`);
+      await this.runDirect(jobName, data, sendDirect);
+    }
+  }
+
+  private getQueue(): Queue<MailJobData> {
     if (!this.queue) {
       // BullMQ does not own an externally provided connection, so keep the
       // reference here and quit it explicitly in `close()`.
       this.connection = createBullConnection();
-      this.queue = new Queue<SendInvitationJobData>(MAIL_QUEUE, {
+      this.queue = new Queue<MailJobData>(MAIL_QUEUE, {
         connection: this.connection,
       });
     }
@@ -80,14 +115,20 @@ class MailQueueProducer {
   }
 
   /**
-   * Direct send keeps invitation creation non-blocking: an email provider
-   * outage must never fail the BetterAuth invitation request itself.
+   * Direct send keeps the auth flow non-blocking: an email provider outage must
+   * never fail sign-up, verification or password-reset requests themselves.
    */
-  private async sendDirect(input: SendInvitationJobData): Promise<void> {
+  private async runDirect(
+    jobName: string,
+    data: MailJobData,
+    sendDirect: () => Promise<void>,
+  ): Promise<void> {
     try {
-      await this.mailService.sendWorkspaceInvitationEmail(input);
+      await sendDirect();
     } catch (error) {
-      this.logger.error(`邀请邮件直接发送失败：${(error as Error).message}`);
+      this.logger.error(
+        `${jobName} 邮件直接发送失败（${recipientOf(data)}）：${(error as Error).message}`,
+      );
     }
   }
 }

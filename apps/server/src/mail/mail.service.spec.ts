@@ -1,6 +1,10 @@
 import { Logger } from "@nestjs/common";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MailService, type WorkspaceInvitationEmailInput } from "./mail.service";
+import {
+  type AuthEmailInput,
+  MailService,
+  type WorkspaceInvitationEmailInput,
+} from "./mail.service";
 
 const mocks = vi.hoisted(() => ({
   send: vi.fn(),
@@ -17,6 +21,12 @@ const invitation: WorkspaceInvitationEmailInput = {
   inviterName: "Alice",
   organizationName: "Acme Team",
   invitationUrl: "http://localhost:5173/accept-invitation/inv_123",
+};
+
+const authEmail: AuthEmailInput = {
+  email: "ada@example.com",
+  userName: "Ada",
+  url: "http://localhost:3000/api/auth/verify-email?token=abc",
 };
 
 const originalEnv = { ...process.env };
@@ -91,5 +101,49 @@ describe("MailService.sendWorkspaceInvitationEmail", () => {
 
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("network down"));
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(invitation.invitationUrl));
+  });
+});
+
+describe("MailService auth emails", () => {
+  it("prints the verification link when RESEND_API_KEY is missing", async () => {
+    await new MailService().sendVerificationEmail(authEmail);
+
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(authEmail.url));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(authEmail.email));
+  });
+
+  it("prints the reset link when RESEND_API_KEY is missing", async () => {
+    await new MailService().sendResetPasswordEmail(authEmail);
+
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(authEmail.url));
+  });
+
+  it("sends both auth emails through Resend with the BetterAuth url untouched", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+
+    await new MailService().sendVerificationEmail(authEmail);
+    await new MailService().sendResetPasswordEmail(authEmail);
+
+    expect(mocks.send).toHaveBeenCalledTimes(2);
+    const verification = mocks.send.mock.calls[0]?.[0] as { html: string; subject: string };
+    const reset = mocks.send.mock.calls[1]?.[0] as { html: string; subject: string };
+    expect(verification.subject).toContain("Verify your email");
+    expect(verification.html).toContain(authEmail.url);
+    expect(reset.subject).toContain("Reset your password");
+    expect(reset.html).toContain(authEmail.url);
+  });
+
+  it("logs the link and rethrows when Resend rejects an auth email", async () => {
+    process.env.RESEND_API_KEY = "re_test_key";
+    mocks.send.mockResolvedValue({ data: null, error: { message: "quota exceeded" } });
+
+    await expect(new MailService().sendResetPasswordEmail(authEmail)).rejects.toThrow(
+      "quota exceeded",
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("quota exceeded"));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(authEmail.url));
   });
 });

@@ -19,8 +19,17 @@ vi.mock("../redis/redis-connection", () => ({
   createBullConnection: () => mocks.connection,
 }));
 
-import { MailService, type WorkspaceInvitationEmailInput } from "./mail.service";
-import { MAIL_QUEUE, SEND_INVITATION_JOB } from "./mail-queue.constants";
+import {
+  type AuthEmailInput,
+  MailService,
+  type WorkspaceInvitationEmailInput,
+} from "./mail.service";
+import {
+  MAIL_QUEUE,
+  SEND_INVITATION_JOB,
+  SEND_RESET_PASSWORD_JOB,
+  SEND_VERIFICATION_JOB,
+} from "./mail-queue.constants";
 import { mailQueueProducer } from "./mail-queue.producer";
 
 const invitation: WorkspaceInvitationEmailInput = {
@@ -30,9 +39,17 @@ const invitation: WorkspaceInvitationEmailInput = {
   invitationUrl: "http://localhost:5173/accept-invitation/inv_123",
 };
 
+const authEmail: AuthEmailInput = {
+  email: "ada@example.com",
+  userName: "Ada",
+  url: "http://localhost:3000/api/auth/reset-password/abc?callbackURL=xyz",
+};
+
 const originalRedisUrl = process.env.REDIS_URL;
 
 let sendSpy: ReturnType<typeof vi.spyOn>;
+let verificationSpy: ReturnType<typeof vi.spyOn>;
+let resetSpy: ReturnType<typeof vi.spyOn>;
 let logSpy: ReturnType<typeof vi.spyOn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -48,12 +65,18 @@ beforeEach(() => {
   sendSpy = vi
     .spyOn(MailService.prototype, "sendWorkspaceInvitationEmail")
     .mockResolvedValue(undefined);
+  verificationSpy = vi
+    .spyOn(MailService.prototype, "sendVerificationEmail")
+    .mockResolvedValue(undefined);
+  resetSpy = vi.spyOn(MailService.prototype, "sendResetPasswordEmail").mockResolvedValue(undefined);
   logSpy = vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
   errorSpy = vi.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
   sendSpy.mockRestore();
+  verificationSpy.mockRestore();
+  resetSpy.mockRestore();
   logSpy.mockRestore();
   errorSpy.mockRestore();
   process.env.REDIS_URL = originalRedisUrl;
@@ -100,5 +123,40 @@ describe("MailQueueProducer", () => {
 
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("redis down"));
     expect(sendSpy).toHaveBeenCalledExactlyOnceWith(invitation);
+  });
+
+  it("sends verification and reset emails inline without Redis", async () => {
+    delete process.env.REDIS_URL;
+
+    await mailQueueProducer.enqueueVerification(authEmail);
+    await mailQueueProducer.enqueueResetPassword(authEmail);
+
+    expect(verificationSpy).toHaveBeenCalledExactlyOnceWith(authEmail);
+    expect(resetSpy).toHaveBeenCalledExactlyOnceWith(authEmail);
+    expect(mocks.Queue).not.toHaveBeenCalled();
+  });
+
+  it("enqueues verification and reset jobs with their own job names", async () => {
+    process.env.REDIS_URL = "redis://localhost:6379";
+
+    await mailQueueProducer.enqueueVerification(authEmail);
+    await mailQueueProducer.enqueueResetPassword(authEmail);
+
+    expect(mocks.add).toHaveBeenNthCalledWith(
+      1,
+      SEND_VERIFICATION_JOB,
+      authEmail,
+      expect.anything(),
+    );
+    expect(mocks.add).toHaveBeenNthCalledWith(
+      2,
+      SEND_RESET_PASSWORD_JOB,
+      authEmail,
+      expect.anything(),
+    );
+    expect(verificationSpy).not.toHaveBeenCalled();
+    expect(resetSpy).not.toHaveBeenCalled();
+
+    await mailQueueProducer.close();
   });
 });
