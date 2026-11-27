@@ -1,6 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { prisma } from "@repo/db";
-import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import { DashboardService } from "./dashboard.service";
 
 vi.mock("@repo/db", () => {
@@ -37,6 +37,7 @@ function buildTaskRow(overrides: Record<string, unknown> = {}) {
     assigneeId: userId,
     creatorId: "user_2",
     dueDate: null,
+    completedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     project: { id: "project_1", name: "Engineering", key: "ENG" },
@@ -62,6 +63,10 @@ describe("DashboardService", () => {
     taskFindMany.mockResolvedValue([]);
     taskGroupBy.mockResolvedValue([]);
     projectFindMany.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("computes the four mutually exclusive stat buckets for the current user", async () => {
@@ -136,11 +141,17 @@ describe("DashboardService", () => {
       { id: "project_2", name: "Design", key: "DSG" },
       { id: "project_3", name: "Empty", key: "EMP" },
     ]);
-    taskGroupBy.mockResolvedValue([
-      { projectId: "project_1", status: "DONE", _count: { _all: 3 } },
-      { projectId: "project_1", status: "TODO", _count: { _all: 2 } },
-      { projectId: "project_2", status: "IN_PROGRESS", _count: { _all: 1 } },
-    ]);
+    taskGroupBy.mockImplementation(async (args: unknown) => {
+      const { by } = args as { by: string[] };
+      if (by.length !== 2) {
+        return [];
+      }
+      return [
+        { projectId: "project_1", status: "DONE", _count: { _all: 3 } },
+        { projectId: "project_1", status: "TODO", _count: { _all: 2 } },
+        { projectId: "project_2", status: "IN_PROGRESS", _count: { _all: 1 } },
+      ];
+    });
 
     const result = await service.getDashboard(organizationId, userId);
 
@@ -149,10 +160,88 @@ describe("DashboardService", () => {
       { id: "project_2", name: "Design", key: "DSG", taskCount: 1, completedCount: 0 },
       { id: "project_3", name: "Empty", key: "EMP", taskCount: 0, completedCount: 0 },
     ]);
-    expect(taskGroupBy).toHaveBeenCalledExactlyOnceWith({
+    expect(taskGroupBy).toHaveBeenCalledWith({
       by: ["projectId", "status"],
       where: { project: { organizationId } },
       _count: { _all: true },
+    });
+  });
+
+  it("returns the workspace status distribution and seven-day Shanghai trend", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-08T04:00:00.000Z")); // 12:00 in Asia/Shanghai
+
+    taskGroupBy.mockImplementation(async (args: unknown) => {
+      const { by } = args as { by: string[] };
+      if (by.length === 1) {
+        return [
+          { status: "BACKLOG", _count: { _all: 2 } },
+          { status: "DONE", _count: { _all: 1 } },
+        ];
+      }
+      return [];
+    });
+
+    taskFindMany.mockImplementation(async (args: unknown) => {
+      const { include } = args as { include?: unknown };
+      if (include) {
+        return [];
+      }
+      return [
+        {
+          createdAt: new Date("2026-01-08T02:00:00.000Z"),
+          completedAt: null,
+          updatedAt: new Date("2026-01-08T02:00:00.000Z"),
+          status: "TODO",
+        },
+        {
+          createdAt: new Date("2026-01-07T20:00:00.000Z"),
+          completedAt: null,
+          updatedAt: new Date("2026-01-07T20:00:00.000Z"),
+          status: "TODO",
+        },
+        {
+          createdAt: new Date("2025-12-01T00:00:00.000Z"),
+          completedAt: new Date("2026-01-07T16:30:00.000Z"),
+          updatedAt: new Date("2026-01-07T16:30:00.000Z"),
+          status: "DONE",
+        },
+        {
+          createdAt: new Date("2025-12-01T00:00:00.000Z"),
+          completedAt: null,
+          updatedAt: new Date("2026-01-06T15:00:00.000Z"),
+          status: "DONE",
+        },
+      ];
+    });
+
+    const result = await service.getDashboard(organizationId, userId);
+
+    expect(result.statusDistribution).toEqual([
+      { status: "BACKLOG", count: 2 },
+      { status: "TODO", count: 0 },
+      { status: "IN_PROGRESS", count: 0 },
+      { status: "DONE", count: 1 },
+      { status: "CANCELED", count: 0 },
+    ]);
+    expect(result.weeklyTrend.map((point) => point.date)).toEqual([
+      "2026-01-02",
+      "2026-01-03",
+      "2026-01-04",
+      "2026-01-05",
+      "2026-01-06",
+      "2026-01-07",
+      "2026-01-08",
+    ]);
+    expect(result.weeklyTrend.find((point) => point.date === "2026-01-08")).toEqual({
+      date: "2026-01-08",
+      created: 2,
+      completed: 1,
+    });
+    expect(result.weeklyTrend.find((point) => point.date === "2026-01-06")).toEqual({
+      date: "2026-01-06",
+      created: 0,
+      completed: 1,
     });
   });
 
@@ -167,6 +256,17 @@ describe("DashboardService", () => {
     });
     expect(result.myTasks).toEqual([]);
     expect(result.projects).toEqual([]);
+    expect(result.statusDistribution).toEqual([
+      { status: "BACKLOG", count: 0 },
+      { status: "TODO", count: 0 },
+      { status: "IN_PROGRESS", count: 0 },
+      { status: "DONE", count: 0 },
+      { status: "CANCELED", count: 0 },
+    ]);
+    expect(result.weeklyTrend).toHaveLength(7);
+    expect(result.weeklyTrend.every((point) => point.created === 0 && point.completed === 0)).toBe(
+      true,
+    );
   });
 
   it("rejects requests without an active organization before querying the database", async () => {

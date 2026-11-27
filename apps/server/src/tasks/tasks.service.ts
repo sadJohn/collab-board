@@ -27,9 +27,30 @@ function toTaskDto(task: Task): TaskDto {
   return {
     ...task,
     dueDate: task.dueDate?.toISOString() ?? null,
+    completedAt: task.completedAt?.toISOString() ?? null,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Keeps `completedAt` in sync with status transitions: entering DONE stamps
+ * "now", leaving DONE clears it, and every other transition is a no-op.
+ */
+function completedAtPatch(
+  nextStatus: TaskStatus | undefined,
+  currentStatus: TaskStatus,
+): { completedAt?: Date | null } {
+  if (nextStatus === undefined || nextStatus === currentStatus) {
+    return {};
+  }
+  if (nextStatus === "DONE") {
+    return { completedAt: new Date() };
+  }
+  if (currentStatus === "DONE") {
+    return { completedAt: null };
+  }
+  return {};
 }
 
 @Injectable()
@@ -89,7 +110,12 @@ export class TasksService {
     const { position } = computePosition(lastTask?.position ?? null, null);
 
     const task = await this.prisma.task.create({
-      data: { ...data, position, creatorId },
+      data: {
+        ...data,
+        position,
+        creatorId,
+        completedAt: data.status === "DONE" ? new Date() : null,
+      },
     });
 
     this.events.emitToProject(task.projectId, SOCKET_EVENTS.TASK_CREATED, {
@@ -120,7 +146,7 @@ export class TasksService {
 
     const updated = await this.prisma.task.update({
       where: { id: task.id },
-      data,
+      data: { ...data, ...completedAtPatch(data.status, task.status) },
     });
 
     this.events.emitToProject(updated.projectId, SOCKET_EVENTS.TASK_UPDATED, {
@@ -194,7 +220,11 @@ export class TasksService {
 
       const updated = await tx.task.update({
         where: { id: task.id },
-        data: { status: data.status, position: computed.position },
+        data: {
+          status: data.status,
+          position: computed.position,
+          ...completedAtPatch(data.status, task.status),
+        },
       });
 
       return { task: updated, fromStatus: task.status };

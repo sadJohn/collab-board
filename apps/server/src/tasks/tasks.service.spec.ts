@@ -65,6 +65,7 @@ function buildTask(overrides: Partial<Task> = {}): Task {
     assigneeId: null,
     creatorId: "user_1",
     dueDate: null,
+    completedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
@@ -208,6 +209,28 @@ describe("TasksService", () => {
       expect(taskCreate).not.toHaveBeenCalled();
       expect(emitToProject).not.toHaveBeenCalled();
     });
+
+    it("stamps completedAt when a task is created directly in DONE", async () => {
+      projectFindFirst.mockResolvedValue({ id: "project_1" });
+      taskFindFirst.mockResolvedValue(null);
+      taskCreate.mockResolvedValue(
+        buildTask({ status: "DONE", completedAt: new Date("2026-02-01T00:00:00.000Z") }),
+      );
+
+      await service.create("org_1", "user_1", {
+        title: "Done already",
+        status: "DONE",
+        priority: "MEDIUM",
+        projectId: "project_1",
+        description: null,
+        assigneeId: null,
+        dueDate: null,
+      });
+
+      expect(taskCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ status: "DONE", completedAt: expect.any(Date) }),
+      });
+    });
   });
 
   describe("update", () => {
@@ -245,6 +268,48 @@ describe("TasksService", () => {
 
       expect(taskUpdate).not.toHaveBeenCalled();
       expect(emitToProject).not.toHaveBeenCalled();
+    });
+
+    it("stamps completedAt when the status transitions to DONE", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ status: "IN_PROGRESS", completedAt: null }));
+      taskUpdate.mockResolvedValue(
+        buildTask({ status: "DONE", completedAt: new Date("2026-02-01T00:00:00.000Z") }),
+      );
+
+      await service.update("org_1", "task_1", { status: "DONE" }, "user_1");
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { status: "DONE", completedAt: expect.any(Date) },
+      });
+    });
+
+    it("clears completedAt when the status leaves DONE", async () => {
+      taskFindFirst.mockResolvedValue(
+        buildTask({ status: "DONE", completedAt: new Date("2026-02-01T00:00:00.000Z") }),
+      );
+      taskUpdate.mockResolvedValue(buildTask({ status: "TODO", completedAt: null }));
+
+      await service.update("org_1", "task_1", { status: "TODO" }, "user_1");
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { status: "TODO", completedAt: null },
+      });
+    });
+
+    it("leaves completedAt untouched when the status is unchanged or absent", async () => {
+      taskFindFirst.mockResolvedValue(
+        buildTask({ status: "DONE", completedAt: new Date("2026-02-01T00:00:00.000Z") }),
+      );
+      taskUpdate.mockResolvedValue(buildTask({ title: "Renamed" }));
+
+      await service.update("org_1", "task_1", { title: "Renamed" }, "user_1");
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { title: "Renamed" },
+      });
     });
   });
 
@@ -437,6 +502,48 @@ describe("TasksService", () => {
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(emitToProject).not.toHaveBeenCalled();
+    });
+
+    it("stamps completedAt when moved into DONE", async () => {
+      taskFindFirst.mockResolvedValue(buildTask({ status: "IN_PROGRESS", completedAt: null }));
+      taskUpdate.mockResolvedValue(
+        buildTask({ status: "DONE", completedAt: new Date("2026-02-01T00:00:00.000Z") }),
+      );
+
+      await service.move(
+        "org_1",
+        "task_1",
+        { status: "DONE", previousTaskId: null, nextTaskId: null },
+        "user_1",
+      );
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { status: "DONE", position: 1000, completedAt: expect.any(Date) },
+      });
+    });
+
+    it("clears completedAt when moved out of DONE", async () => {
+      taskFindFirst.mockResolvedValue(
+        buildTask({
+          status: "DONE",
+          position: 1000,
+          completedAt: new Date("2026-02-01T00:00:00.000Z"),
+        }),
+      );
+      taskUpdate.mockResolvedValue(buildTask({ status: "TODO", completedAt: null }));
+
+      await service.move(
+        "org_1",
+        "task_1",
+        { status: "TODO", previousTaskId: null, nextTaskId: null },
+        "user_1",
+      );
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { status: "TODO", position: 1000, completedAt: null },
+      });
     });
   });
 

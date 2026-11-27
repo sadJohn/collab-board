@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { taskStatusSchema } from "../enums.js";
 import { taskDtoSchema } from "./dto.js";
 
 /**
@@ -46,9 +47,26 @@ export const dashboardProjectSchema = z.object({
 });
 export type DashboardProject = z.infer<typeof dashboardProjectSchema>;
 
+/** One slice of the workspace-wide task status donut. */
+export const dashboardStatusDistributionSchema = z.object({
+  status: taskStatusSchema,
+  count: countSchema,
+});
+export type DashboardStatusDistribution = z.infer<typeof dashboardStatusDistributionSchema>;
+
+/** One day in the seven-day created/completed trend (Asia/Shanghai bucket). */
+export const dashboardTrendPointSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date 必须是 YYYY-MM-DD"),
+  created: countSchema,
+  completed: countSchema,
+});
+export type DashboardTrendPoint = z.infer<typeof dashboardTrendPointSchema>;
+
 export const dashboardDtoSchema = z.object({
   stats: dashboardStatsSchema,
   myTasks: z.array(dashboardTaskSchema),
   projects: z.array(dashboardProjectSchema),
+  statusDistribution: z.array(dashboardStatusDistributionSchema),
+  weeklyTrend: z.array(dashboardTrendPointSchema),
 });
 export type DashboardDto = z.infer<typeof dashboardDtoSchema>;

@@ -23,6 +23,7 @@ export const taskDtoSchema = z.object({
   assigneeId: z.string().nullable(),
   creatorId: z.string().min(1),
   dueDate: isoDateTimeSchema.nullable(),
+  completedAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
 });

@@ -194,6 +194,9 @@ model Task {
   assigneeId  String?
   creatorId   String
   dueDate     DateTime?
+  // Set when the task enters DONE and cleared when it leaves DONE. Drives the
+  // "completed per day" series on the dashboard (Asia/Shanghai buckets).
+  completedAt DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 

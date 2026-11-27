@@ -24,6 +24,7 @@ const myTask = {
   assigneeId: "user_1",
   creatorId: "user_2",
   dueDate: null,
+  completedAt: null,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   project: { id: "project_1", name: "Engineering", key: "ENG" },
@@ -33,6 +34,17 @@ const dashboard: DashboardDto = {
   stats,
   myTasks: [myTask],
   projects: [{ id: "project_1", name: "Engineering", key: "ENG", taskCount: 5, completedCount: 3 }],
+  statusDistribution: [
+    { status: "BACKLOG", count: 1 },
+    { status: "TODO", count: 2 },
+    { status: "IN_PROGRESS", count: 1 },
+    { status: "DONE", count: 4 },
+    { status: "CANCELED", count: 0 },
+  ],
+  weeklyTrend: [
+    { date: "2026-01-01", created: 2, completed: 1 },
+    { date: "2026-01-02", created: 0, completed: 0 },
+  ],
 };
 
 describe("dashboardStatsSchema", () => {
@@ -74,8 +86,19 @@ describe("dashboardDtoSchema", () => {
       stats: { assignedCount: 0, inProgressCount: 0, overdueCount: 0, completedCount: 0 },
       myTasks: [],
       projects: [],
+      statusDistribution: [],
+      weeklyTrend: [],
     };
     expect(dashboardDtoSchema.parse(empty)).toEqual(empty);
+  });
+
+  it("rejects an invalid trend date format", () => {
+    expect(
+      dashboardDtoSchema.safeParse({
+        ...dashboard,
+        weeklyTrend: [{ date: "01/02/2026", created: 1, completed: 0 }],
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects negative project counts", () => {
