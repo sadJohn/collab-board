@@ -1,4 +1,12 @@
-import { Button } from "@repo/ui";
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -26,6 +34,7 @@ export function AppHeader() {
 
   const activeOrganizationId = activeOrganization.data?.id ?? "";
   const items = organizations.data ?? [];
+  const user = session.data?.user;
 
   async function handleOrganizationChange(organizationId: string) {
     if (!organizationId || organizationId === activeOrganizationId) {
@@ -83,15 +92,37 @@ export function AppHeader() {
           </select>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          {session.data?.user ? <UserAvatar size="sm" user={session.data.user} /> : null}
-          <span className="hidden text-muted-foreground text-xs sm:inline">
-            {session.data?.user.email}
-          </span>
-          <Button onClick={() => void handleSignOut()} size="sm" variant="ghost">
-            {t("user.signOut")}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center gap-2 rounded-md p-1 outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                type="button"
+              >
+                {user ? <UserAvatar size="sm" user={user} /> : null}
+                <span className="hidden max-w-32 truncate text-sm sm:inline">
+                  {user?.name ?? user?.email}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="flex flex-col">
+                <span className="truncate font-medium text-sm">{user?.name ?? user?.email}</span>
+                <span className="truncate font-normal text-muted-foreground text-xs">
+                  {user?.email}
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings/profile">{t("user.profileSettings")}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void handleSignOut()}>
+                {t("user.signOut")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

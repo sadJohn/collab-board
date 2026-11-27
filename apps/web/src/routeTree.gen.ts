@@ -17,6 +17,7 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppWorkspaceRouteImport } from './routes/_app/workspace'
 import { Route as AppProjectsIndexRouteImport } from './routes/_app/projects/index'
 import { Route as AppProjectsProjectIdRouteRouteImport } from './routes/_app/projects/$projectId/route'
+import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings/profile'
 import { Route as AppProjectsProjectIdIndexRouteImport } from './routes/_app/projects/$projectId/index'
 import { Route as AppProjectsProjectIdBoardRouteImport } from './routes/_app/projects/$projectId/board'
 import { Route as AppProjectsProjectIdListRouteImport } from './routes/_app/projects/$projectId/list'
@@ -61,6 +62,11 @@ const AppProjectsProjectIdRouteRoute =
     path: '/projects/$projectId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProjectsProjectIdIndexRoute =
   AppProjectsProjectIdIndexRouteImport.update({
     id: '/',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof AppHomeRoute
   '/workspace': typeof AppWorkspaceRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRouteRouteWithChildren
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/projects/': typeof AppProjectsIndexRoute
   '/projects/$projectId/board': typeof AppProjectsProjectIdBoardRoute
   '/projects/$projectId/list': typeof AppProjectsProjectIdListRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/home': typeof AppHomeRoute
   '/workspace': typeof AppWorkspaceRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/projects': typeof AppProjectsIndexRoute
   '/projects/$projectId/board': typeof AppProjectsProjectIdBoardRoute
   '/projects/$projectId/list': typeof AppProjectsProjectIdListRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/_app/home': typeof AppHomeRoute
   '/_app/workspace': typeof AppWorkspaceRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRouteRouteWithChildren
+  '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/projects/': typeof AppProjectsIndexRoute
   '/_app/projects/$projectId/board': typeof AppProjectsProjectIdBoardRoute
   '/_app/projects/$projectId/list': typeof AppProjectsProjectIdListRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/workspace'
     | '/projects/$projectId'
+    | '/settings/profile'
     | '/projects/'
     | '/projects/$projectId/board'
     | '/projects/$projectId/list'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/home'
     | '/workspace'
+    | '/settings/profile'
     | '/projects'
     | '/projects/$projectId/board'
     | '/projects/$projectId/list'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_app/home'
     | '/_app/workspace'
     | '/_app/projects/$projectId'
+    | '/_app/settings/profile'
     | '/_app/projects/'
     | '/_app/projects/$projectId/board'
     | '/_app/projects/$projectId/list'
@@ -221,6 +233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsProjectIdRouteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/profile': {
+      id: '/_app/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/projects/$projectId/': {
       id: '/_app/projects/$projectId/'
       path: '/'
@@ -267,6 +286,7 @@ interface AppRouteChildren {
   AppHomeRoute: typeof AppHomeRoute
   AppWorkspaceRoute: typeof AppWorkspaceRoute
   AppProjectsProjectIdRouteRoute: typeof AppProjectsProjectIdRouteRouteWithChildren
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppProjectsIndexRoute: typeof AppProjectsIndexRoute
 }
 
@@ -274,6 +294,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
   AppWorkspaceRoute: AppWorkspaceRoute,
   AppProjectsProjectIdRouteRoute: AppProjectsProjectIdRouteRouteWithChildren,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppProjectsIndexRoute: AppProjectsIndexRoute,
 }
 

@@ -10,6 +10,15 @@ export {
   DialogTitle,
   DialogTrigger,
 } from "./components/dialog";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./components/dropdown-menu";
 export { Input } from "./components/input";
 export { Textarea } from "./components/textarea";
 export { cn } from "./lib/utils";

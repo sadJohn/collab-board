@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { signInSchema, signUpSchema } from "../src/index.js";
+import {
+  signInSchema,
+  signUpSchema,
+  USER_NAME_MAX_LENGTH,
+  updateProfileSchema,
+} from "../src/index.js";
 
 describe("signInSchema", () => {
   it("accepts an email and a non-empty password", () => {
@@ -36,5 +41,23 @@ describe("signUpSchema", () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toBe("Password must be at least 8 characters");
+  });
+});
+
+describe("updateProfileSchema", () => {
+  it("trims the display name", () => {
+    expect(updateProfileSchema.parse({ name: "  Ada Lovelace  " })).toEqual({
+      name: "Ada Lovelace",
+    });
+  });
+
+  it("rejects a blank display name", () => {
+    expect(updateProfileSchema.safeParse({ name: "   " }).success).toBe(false);
+  });
+
+  it("rejects a display name over the maximum length", () => {
+    expect(
+      updateProfileSchema.safeParse({ name: "a".repeat(USER_NAME_MAX_LENGTH + 1) }).success,
+    ).toBe(false);
   });
 });

@@ -57,7 +57,8 @@
     "toggleSidebar": "Toggle sidebar"
   },
   "user": {
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "profileSettings": "Profile settings"
   },
   "board": {
     "loading": "Loading board…",
@@ -179,6 +180,26 @@
       "sent": "Invitation sent to {{email}}.",
       "needActive": "Select a workspace first.",
       "failed": "Could not send the invitation. Try again."
+    }
+  },
+  "settings": {
+    "profile": {
+      "title": "Profile settings",
+      "subtitle": "Update your avatar and display name. Other members will see the latest details.",
+      "avatar": {
+        "label": "Avatar",
+        "drop": "Click or drag an image here",
+        "hint": "JPG, PNG or WebP, up to 2MB.",
+        "invalidType": "Only JPG, PNG and WebP images are supported.",
+        "tooLarge": "The image must be 2MB or smaller.",
+        "selected": "Selected {{name}}"
+      },
+      "details": "Profile details",
+      "name": "Display name",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "saveFailed": "Could not save your profile. Try again."
     }
   },
   "notFound": {
