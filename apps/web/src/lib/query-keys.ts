@@ -86,4 +86,5 @@ export const queryKeys = {
     list: ["notifications"] as const,
   },
   dashboard: (organizationId: string) => ["organizations", organizationId, "dashboard"] as const,
+  analytics: (organizationId: string) => ["organizations", organizationId, "analytics"] as const,
 } as const;
