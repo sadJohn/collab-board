@@ -29,6 +29,17 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: { enabled: true },
+  databaseHooks: {
+    user: {
+      create: {
+        // This app has no email-verification flow (email is only used for
+        // invitations), but BetterAuth's organization plugin rejects
+        // `listUserInvitations` for unverified sessions. Treat email/password
+        // sign-ups as verified so the notification inbox can list invitations.
+        before: async (user) => ({ data: { ...user, emailVerified: true } }),
+      },
+    },
+  },
   socialProviders: {
     ...(githubClientId && githubClientSecret
       ? { github: { clientId: githubClientId, clientSecret: githubClientSecret } }
