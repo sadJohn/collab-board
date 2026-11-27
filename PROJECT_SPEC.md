@@ -445,6 +445,65 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **验收**：四条命令全绿且零 Biome 报错。
   - **阶段十二完成标准**：事件经前端 SDK 攒批上报、后端 BullMQ 批量入库（无 `REDIS_URL` 时降级同步入库），`AnalyticsEvent` 表结构与 `@repo/shared` 契约一致且含 `clientTimestamp`；分析看板的 DAU、功能热度与 7 天趋势数据真实反映用户操作；全部测试、类型检查、规范与构建命令通过。
 
+- **第十三阶段（Phase 13）：账户安全闭环（邮箱验证、修改密码与重置密码）**
+  - **前置技术约定**
+    - **复用异步邮件队列（`MailQueueProducer`）**：所有新增认证邮件（邮箱验证、重置密码）必须通过第十一阶段（11.3）建立的 `MailQueueProducer` 单例异步入队发送；未配置 `REDIS_URL` 时自动降级为 `MailService` 直发，并在日志中打印完整回调链接，方便本地单机联调。
+    - **BetterAuth 原生能力复用**：严禁手写自定义 Token 表或加解密逻辑，统一使用 BetterAuth 内置的 `emailVerification`、`sendResetPassword`、`changePassword` 与 `resetPassword`。
+    - **邮箱验证强制生效**：开启 `emailAndPassword.requireEmailVerification`，未验证邮箱的账号不允许登录；**不考虑历史账号兼容**（存量账号需完成验证，或改用 GitHub 登录）。
+    - **GitHub OAuth**：通过 BetterAuth 原生 `socialProviders.github` 接入 GitHub 登录，凭据来自环境变量 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`，禁止硬编码。
+    - **多语言对齐**：所有新增页面、提示横幅、表单校验错误与邮件主题均需同步补齐 `zh.json` 与 `en.json`（两文件 key 必须一致，`resources.test.ts` 会校验）。
+  - **子任务拆解（13.1 – 13.9）：严格按序执行，每个任务完成并自检通过后再进入下一个（先落地 GitHub 登录，再完成邮箱验证与密码闭环）**
+    - **13.1 后端启用 GitHub OAuth（`apps/server`）**
+      - 在 `apps/server/src/auth/auth.ts` 的 `socialProviders` 中启用 `github: { clientId, clientSecret }`，凭据从 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 读取，缺失时启动即明确报错。
+      - 确认 GitHub OAuth App 回调地址为 `${API_URL}/api/auth/callback/github`（本地默认 `http://localhost:3000/api/auth/callback/github`）；`.env` 与 `.env.example` 已包含对应变量。
+      - **验收**：服务启动无缺失凭据报错，GitHub 授权回调链路可用。
+    - **13.2 前端：登录/注册页 GitHub 登录（`apps/web`）**
+      - 在 `/login` 与 `/register` 表单下方新增「使用 GitHub 继续 / Continue with GitHub」按钮，点击调用 `authClient.signIn.social({ provider: "github", callbackURL: `${window.location.origin}/home` })`。
+      - 补充按钮文案与失败提示到 `zh.json` / `en.json`（两文件 key 保持一致）。
+      - **验收**：点击按钮跳转 GitHub 授权页，授权后回跳 `/home` 并处于登录状态。
+    - **13.3 扩展异步邮件队列类型（`apps/server`）**
+      - 扩展 `MailService` 与 `MailQueueProducer` / `MailProcessor`，新增两个标准化发信方法与队列 Job 类型：
+        1. `sendVerificationEmail({ email, userName, url })`
+        2. `sendResetPasswordEmail({ email, userName, url })`
+      - 确保在无 `REDIS_URL` 时降级通过 NestJS `Logger` 醒目打印对应链接。
+      - **验收**：`MailProcessor` 单元测试覆盖新增两种邮件 Job 的正常消费与降级打印。
+
+    - **13.4 后端启用邮箱验证与密码重置钩子（`apps/server`）**
+      - 在 `apps/server/src/auth/auth.ts` 中完善配置：
+        - `emailAndPassword` 设为 `{ enabled: true, requireEmailVerification: true, sendResetPassword: async ({ user, url }) => ... }`，把 BetterAuth 生成的 `url` **原样入队发送**——该链接已含一次性 `token` 与回调地址，禁止自行拼接或改写。
+        - 新增顶层配置 `emailVerification: { sendOnSignUp: true, autoSignInAfterVerification: true, sendVerificationEmail: async ({ user, url }) => ... }`，同样将 `url` 原样入队。
+        - 移除现有 `databaseHooks.user.create.before` 中强制写入 `emailVerified: true` 的逻辑，否则邮箱永远不会处于未验证状态。
+        - 前端落地页由 `requestPasswordReset({ redirectTo })` / `sendVerificationEmail({ callbackURL })` 决定，不在该钩子里硬编码。
+      - **验收**：注册新用户或请求重置密码时，`mail` 队列出现对应 Job，日志/邮件中输出带有效 `token` 的回调链接；未验证邮箱的密码登录被拒绝。
+
+    - **13.5 共享表单校验 Schema（`packages/shared`）**
+      - 抽取可复用的 `passwordSchema`（`min 8`、`max 128`），供现有 `signUpSchema` 与新 Schema 共用，避免密码规则漂移。
+      - 新增密码安全校验 Schema：
+        - `changePasswordSchema`（`currentPassword`、`newPassword` 复用 `passwordSchema`、`confirmPassword` 两次输入一致校验、`revokeOtherSessions: boolean`）。
+        - `forgotPasswordSchema`（`email`）与 `resetPasswordSchema`（`newPassword` 复用 `passwordSchema`、`confirmPassword` 一致校验）。
+      - 补充边界值 Vitest 单元测试（长度上下限、两次输入不一致）。
+      - **验收**：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+
+    - **13.6 前端：未验证邮箱提醒与验证结果（`apps/web`）**
+      - 在受保护布局（`apps/web/src/routes/_app.tsx`）顶部条件渲染 `<EmailVerificationBanner />`：当 `session.user.emailVerified === false` 时显示柔和提醒条，提供「重新发送验证邮件（Resend）」按钮（调用 `authClient.sendVerificationEmail({ email, callbackURL })`，带 60 秒倒计时防连点）。
+      - 验证链接的 `callbackURL` 指向受保护首页（如 `${FRONTEND_URL}/home`）；BetterAuth 校验成功并自动登录后回到该页，前端检测到 `emailVerified` 变为 `true` 时隐藏横幅并弹出「邮箱验证成功」Toast（无需单独的 `/verify-email` 页面）。
+      - **验收**：新注册账号登录后顶部出现未验证提醒横幅，点击验证链接后横幅自动消失且 `emailVerified` 变为 `true`。
+
+    - **13.7 前端：忘记密码与重置密码页面（`apps/web`）**
+      - 在 `/login` 页面密码输入框旁添加「忘记密码？ / Forgot password?」链接，跳转至 `/forgot-password`。
+      - 开发 `/forgot-password` 公开路由：输入邮箱调用 `authClient.requestPasswordReset({ email, redirectTo: \`${window.location.origin}/reset-password\` })`，提交后展示「若该邮箱已注册，我们已发送重置链接」的统一提示（防邮箱枚举攻击，无论邮箱是否存在都不泄露账号状态）。
+      - 开发 `/reset-password` 公开路由：从 URL Search Params 读取 `token`（缺失或过期时提示错误引导重新申请），使用 React Hook Form + `resetPasswordSchema` 调用 `authClient.resetPassword({ newPassword, token })`，成功后自动跳转 `/login`。
+      - **验收**：完整走通“点击忘记密码 -> 从控制台/邮箱打开重置链接 -> 设置新密码 -> 使用新密码登录成功”。
+
+    - **13.8 前端：个人设置页接入修改密码（`apps/web`）**
+      - 在 `/settings/profile` 页面下方新增「账户安全 / Security」卡片（或拆分为「个人资料 / Profile」与「安全设置 / Security」双 Tab），集成 React Hook Form + `changePasswordSchema`。
+      - 提交时调用 `authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions })`，提供当前密码错误等友好国际化提示，修改成功后清空表单。
+      - **验收**：输入错误旧密码报错提示准确，输入正确旧密码可成功修改密码。
+
+    - **13.9 收尾自检**
+      - 依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+      - **验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十三完成标准**：邮箱验证与重置/修改密码全流程可用，GitHub OAuth 可完成注册与登录；认证邮件统一经 `MailQueueProducer` 异步入队（无 `REDIS_URL` 时直发）；未验证邮箱的密码账号无法登录；新增页面、提示与校验错误中英双语文案一致；全部测试、类型检查、规范与构建命令通过。
 
 ---
 
