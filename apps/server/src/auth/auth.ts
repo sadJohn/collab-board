@@ -3,6 +3,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { organization } from "better-auth/plugins";
 
+import { MailService } from "../mail/mail.service";
+
+const mailService = new MailService();
+
+/** Base URL of the web app, used to build the invitation landing link. */
+function frontendUrl(): string {
+  return (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/+$/, "");
+}
+
 const githubClientId = process.env.GITHUB_CLIENT_ID;
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -29,5 +38,17 @@ export const auth = betterAuth({
       : {}),
   },
   trustedOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(","),
-  plugins: [organization()],
+  plugins: [
+    organization({
+      // Resend when configured, otherwise MailService logs the invitation URL.
+      sendInvitationEmail: async (data) => {
+        await mailService.sendWorkspaceInvitationEmail({
+          to: data.email,
+          inviterName: data.inviter.user.name,
+          organizationName: data.organization.name,
+          invitationUrl: `${frontendUrl()}/accept-invitation/${data.id}`,
+        });
+      },
+    }),
+  ],
 });
