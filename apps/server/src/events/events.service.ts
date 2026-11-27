@@ -53,6 +53,7 @@ export class EventsService {
 
     const room = this.server.to(projectRoomName(projectId));
     const broadcast = room.emit as unknown as Broadcast;
-    broadcast(event, parsed);
+    // Keep `room` as the receiver: the operator's emit relies on `this.adapter`.
+    broadcast.call(room, event, parsed);
   }
 }
