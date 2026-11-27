@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type DashboardDto,
+  type DashboardTask,
   dashboardDtoSchema,
   dashboardStatsSchema,
   dashboardTaskSchema,
@@ -13,7 +14,7 @@ const stats = {
   completedCount: 4,
 };
 
-const myTask = {
+const myTask: DashboardTask = {
   id: "task_1",
   title: "Ship the dashboard",
   description: null,
