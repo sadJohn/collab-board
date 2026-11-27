@@ -261,6 +261,8 @@
     "empty": "还没有工作区，先创建一个。",
     "active": "当前工作区",
     "switch": "切换",
+    "activationFailed": "工作区激活失败，请重试。",
+    "retry": "重试",
     "create": {
       "title": "创建工作区",
       "name": "名称",

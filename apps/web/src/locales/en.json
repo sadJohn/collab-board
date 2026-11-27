@@ -261,6 +261,8 @@
     "empty": "No workspaces yet. Create one below.",
     "active": "Active",
     "switch": "Switch",
+    "activationFailed": "Could not activate the workspace. Try again.",
+    "retry": "Retry",
     "create": {
       "title": "Create workspace",
       "name": "Name",

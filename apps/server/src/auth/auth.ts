@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { organization } from "better-auth/plugins";
 
 import { mailQueueProducer } from "../mail/mail-queue.producer";
+import { createWorkspaceDatabaseHooks } from "./workspace-database-hooks";
 
 /** Base URL of the web app, used to build the invitation landing link. */
 function frontendUrl(): string {
@@ -32,6 +33,7 @@ if (!githubClientId || !githubClientSecret) {
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
+  databaseHooks: createWorkspaceDatabaseHooks(prisma),
   baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
   basePath: "/api/auth",
   secret: process.env.BETTER_AUTH_SECRET,

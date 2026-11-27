@@ -48,6 +48,7 @@ model User {
   email         String   @unique
   emailVerified Boolean  @default(false)
   image         String?
+  lastActiveOrganizationId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

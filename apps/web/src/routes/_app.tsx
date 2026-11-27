@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { EmailVerificationBanner } from "../components/auth/email-verification-banner";
 import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
+import { WorkspaceGate } from "../components/workspace/workspace-gate";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
 import { useNotificationRealtime } from "../hooks/use-notification-realtime";
 import { usePageViewTracking } from "../hooks/use-page-view-tracking";
@@ -70,7 +71,9 @@ function AppLayout() {
 
         <main className="min-w-0 flex-1">
           <EmailVerificationBanner />
-          <Outlet />
+          <WorkspaceGate>
+            <Outlet />
+          </WorkspaceGate>
         </main>
       </div>
 
