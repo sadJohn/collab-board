@@ -19,6 +19,7 @@ interface UiState {
   setActiveTaskId: (taskId: string | null) => void;
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+  toggleCommandPalette: () => void;
 }
 
 function resolveInitialLanguage(): SupportedLanguage {
@@ -54,6 +55,9 @@ export const useUiStore = create<UiState>()(
       commandPaletteOpen: false,
       setCommandPaletteOpen: (commandPaletteOpen) => {
         set({ commandPaletteOpen });
+      },
+      toggleCommandPalette: () => {
+        set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen }));
       },
     }),
     {
