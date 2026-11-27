@@ -241,6 +241,30 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
 - **第五阶段（Phase 5）：WebSocket 实时协作**
   - 实现 NestJS WebSocket Gateway（`Socket.io`）及项目房间管理逻辑。
   - 在 `apps/web` 中接入 `socket.io-client`，监听房间广播并实时更新 `TanStack Query` 缓存。
+  - **技术决策与前置约定**
+    - **握手鉴权**：连接建立时从握手的 Cookie 解析会话（`auth.api.getSession`，复用 BetterAuth），未认证直接拒绝；`JOIN_PROJECT_ROOM` 时再校验项目属于当前活动组织且用户存在于 `member` 表，绝不信任客户端传入的身份。
+    - **房间命名**：统一使用 `@repo/shared` 的 `projectRoomName(projectId)`（`project:${projectId}`）；进入项目布局即 join，切换项目或离开路由时 leave，避免跨项目串台。
+    - **契约现状**：`packages/shared/src/socket-events.ts` 已定义 `SOCKET_EVENTS`、载荷 Zod Schema、`socketPayloadSchemas` 与双端事件类型；本阶段补齐 `COMMENT_DELETED`，并在服务端广播前、客户端接收后均 `parse` 校验。
+    - **广播触发点**：业务 Service 成功写库后经 `EventsService` 广播；Gateway 只负责连接鉴权与房间进出，禁止反向依赖业务 Service，避免循环依赖。载荷统一携带 `actorId` 便于前端识别本地操作。
+    - **乐观更新与广播并存**：广播不直接覆盖未确认的乐观状态，列表/看板以 `invalidateQueries` 收敛到服务端权威数据；任务详情与评论列表用 `setQueryData` 精准更新；重连成功后统一 invalidate 兜底。
+    - **客户端连接**：`socket.io-client` 单例（`withCredentials: true`、地址取 `VITE_API_URL`、按需 connect），断线自动重连后重新 join 当前房间。
+    - **单实例假设**：暂不引入 Redis adapter，房间状态保存在单个 NestJS 实例内；多实例扩展作为后续演进点。
+  - **子任务拆解（5.1 – 5.10）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **5A 契约与网关**
+      - **5.1 补齐事件契约**：在 `@repo/shared` 新增 `COMMENT_DELETED`（`commentId`/`taskId`/`projectId`/`actorId`）及对应 `socketPayloadSchemas`、`ServerToClientEvents` 条目；单测覆盖合法载荷与缺字段拒绝。验收：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+      - **5.2 EventsService**：新增 `EventsModule`，对外提供 `emitToProject(projectId, event, payload)`，广播前用共享 Schema `parse`（校验失败抛错且不广播）；`TasksModule`/`CommentsModule` 可注入。验收：单测覆盖“合法广播一次 / 非法载荷不广播”。
+      - **5.3 Socket 握手鉴权**：在 Gateway 的 `afterInit` 中注册 `server.use` 连接中间件，通过 `fromNodeHeaders(socket.handshake.headers)` 调用 `auth.api.getSession`，失败调用 `next(new Error('Unauthorized'))` 拒绝连接，成功则将用户信息存入 `socket.data.user`；单测 mock 会话覆盖无 Cookie、会话无效、会话有效三种情况。验收：无会话客户端连接被拒。
+      - **5.4 ProjectsGateway 房间管理**：`@WebSocketGateway` 开启 CORS（`origin` 取 `CORS_ORIGIN`、`credentials: true`）；`JOIN_PROJECT_ROOM` 从 `socket.data.user` 获取身份，校验项目归属与成员身份后 `socket.join(projectRoomName(...))` 并通过 ack 返回房间名；`LEAVE_PROJECT_ROOM` 离开；非成员/跨组织返回错误且不入房。验收：单测覆盖 join/leave/越权拒绝；两个客户端加入同一房间可互收广播。
+    - **5B 服务端广播接入**
+      - **5.5 Tasks 广播接入**：`create` → `TASK_CREATED`、`update` → `TASK_UPDATED`、`move` → `TASK_MOVED`（附带 `fromStatus`）、`delete` → `TASK_DELETED`；`actorId` 取当前会话用户，仅在写库成功后广播。验收：`TasksService` 单测断言每类操作 emit 一次且失败路径不广播。
+      - **5.6 Comments 广播接入**：`create` → `COMMENT_ADDED`、`delete` → `COMMENT_DELETED`（含 `taskId`/`projectId`）；删除权限仍由“作者或管理员”服务端校验。验收：`CommentsService` 单测覆盖广播与越权不广播。
+    - **5C 前端实时层**
+      - **5.7 Socket 客户端与连接 Hook**：`src/lib/socket.ts` 创建单例连接（`withCredentials`、`autoConnect: false`）；`useProjectRoom(projectId)` 负责 connect → join、`connect` 事件重连后自动重新 join、切换项目先 leave 旧房间、卸载时清理监听。验收：`typecheck` 通过；浏览器 Network 面板可见握手成功与 join ack。
+      - **5.8 缓存同步**：`useProjectRealtime(projectId)` 监听事件并在边界 `parse`：若 `payload.actorId === currentUserId` 且为 `TASK_MOVED` 则跳过冗余失效避免拖拽闪烁；`TASK_CREATED`/`TASK_UPDATED` 更新详情缓存并失效列表/看板，`TASK_MOVED` 失效看板缓存，`TASK_DELETED` 移除详情缓存并失效列表，`COMMENT_ADDED`/`COMMENT_DELETED` 精准更新评论列表缓存；重连成功统一 invalidate。验收：事件到缓存更新的纯函数/映射单测通过，`typecheck` 无 `any`。
+      - **5.9 布局接入与清理**：项目布局挂载 `useProjectRoom` 与 `useProjectRealtime`；切换 `projectId` 或离开路由时 leave + 解绑；收到 `TASK_DELETED` 且与 `activeTaskId` 一致时自动关闭抽屉。验收：路由切换后旧房间不再收到事件（浏览器实测）。
+    - **5D 收尾**
+      - **5.10 双端联调与收尾自检**：两个浏览器上下文登录同一工作区并打开同一项目，验证任务创建、跨列拖拽、编辑、删除与评论增删在另一端实时生效；模拟断网恢复后自动重连并补齐数据。依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错；双端实测全部通过。
+  - **阶段五完成标准**：未认证或非工作区成员无法加入项目房间；同一项目内任一端对任务与评论的增删改移都会实时同步到另一端且无需刷新；断线重连后数据自动收敛；全部测试、类型检查、规范与构建命令通过。
 
 ---
 
