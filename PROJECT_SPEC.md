@@ -306,6 +306,27 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **7.6 收尾自检**：补充 `ui-store` 命令面板开关测试与在线成员去重 / 折叠格式化纯函数单测；依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错。
   - **阶段七完成标准**：命令面板可通过全局快捷键呼出并仅用键盘完成高频操作与跨视图跳转；同一项目内在线成员头像实时增减、按用户去重且多标签页不重复；全部测试、类型检查、规范与构建命令通过。
 
+- **第八阶段（Phase 8）：工作区邀请完整闭环（邮件发送 + 链接邀请 + 站内通知收件箱）**
+  - 通过 Resend（本地开发模式降级为控制台日志）发送邀请邮件，包含工作区名称、邀请人信息与接受按钮的 HTML 邮件。
+  - 提供链接邀请 / 邮件邀请 / 站内铃铛通知三条路径，邀请接受后自动切换工作区并跳转。
+  - **技术决策与前置约定**
+    - **BetterAuth Organization 邮件钩子**：在 `apps/server` 的 `better-auth` 配置中，为 `organization()` 插件实现 `sendInvitationEmail` 回调，生成包含 `invitation.id` 的前端落地页链接（`` `${FRONTEND_URL}/accept-invitation/${data.id}` ``）。
+    - **双模式发信（Resend + 本地控制台兜底）**：集成 `resend` SDK；当 `.env` 配置了 `RESEND_API_KEY` 时，通过 Resend 发送包含工作区名称、邀请人信息与接受按钮的 HTML 邮件；未配置 Key（本地开发模式）时不报错阻塞，在 NestJS `Logger` 中醒目输出完整邀请 URL。
+    - **站内闭环（无需邮件也能秒通）**：邀请成员弹窗支持「复制邀请链接」快捷操作；顶部导航栏新增站内通知收件箱，调用 BetterAuth 原生接口列出当前登录用户邮箱名下的所有 `pending` 邀请，支持一键接受或拒绝。
+    - **通知类型可扩展**：`AppNotification` 采用联合类型（当前仅 `WORKSPACE_INVITATION`），通过 `type` 字段分发渲染对应卡片，后续新增业务通知零破坏。
+  - **子任务拆解（8.1 – 8.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **8A 邮件服务封装**
+      - **8.1 环境变量与邮件服务封装（`apps/server`）**：`.env.example` 补充 `FRONTEND_URL="http://localhost:5173"`、`RESEND_API_KEY=""`、`EMAIL_FROM="Collab Board <onboarding@resend.dev>"`；安装 `resend` 包，封装 `MailService`（`sendWorkspaceInvitationEmail`），有 Key 时调用 Resend 发送双语/清晰排版邀请邮件，无 Key 时通过 NestJS `Logger` 打印格式化邀请链接；**验收**：`MailService` 单元测试覆盖「有 API Key 调用 Resend / 无 API Key 降级日志输出」。
+      - **8.2 挂载 BetterAuth `sendInvitationEmail` 钩子（`apps/server`）**：在 BetterAuth 初始化配置中，为 `organization({ sendInvitationEmail: async (data) => ... })` 接入 `MailService`，传入 `email`、`inviter.user.name`、`organization.name` 与拼接好的 `` `${FRONTEND_URL}/accept-invitation/${data.id}` ``；**验收**：调用邀请接口后，控制台成功打印出带真实 `invitationId` 的邀请链接（配置 Key 后邮箱能收到邮件）。
+    - **8B 邀请接受落地页**
+      - **8.3 邀请接受落地页 `/accept-invitation/$invitationId`（`apps/web`）**：新增路由 `/accept-invitation/$invitationId`（补齐 `zh.json` 与 `en.json` 翻译 Key）；未登录用户提示需先登录/注册（跳转 `` `/login?redirect=/accept-invitation/${invitationId}` ``），已登录用户展示邀请信息卡片并提供「接受邀请 / 拒绝」按钮（分别调用 `authClient.organization.acceptInvitation` 与 `rejectInvitation`），接受成功后自动 `setActive({ organizationId })` 并跳转至该工作区首页；**验收**：双浏览器窗口测试——账号 A 发出邀请，账号 B 打开落地页点击接受，成功加入工作区并自动切换过去。
+    - **8C 管理与通知**
+      - **8.4 工作区设置页：待处理邀请列表与复制链接（`apps/web`）**：在工作区成员管理/邀请区域，通过 `authClient.organization.listInvitations()` 展示当前工作区已发出的 `pending` 邀请列表；为每条 `pending` 邀请提供「复制邀请链接」按钮（一键复制 `` `${window.location.origin}/accept-invitation/${inv.id}` `` 并提示已复制）和「撤销邀请」按钮（`cancelInvitation`）；**验收**：管理员发出邀请后可直接复制链接发给协作者，也能随时撤销未接受的邀请。
+      - **8.5 顶部导航栏：可扩展的站内通知中心（`apps/web`）**：定义可扩展的 `AppNotification` 联合类型（当前包含 `WORKSPACE_INVITATION`，预留业务通知扩展位），封装 `useNotifications()` 聚合 Hook，将 `authClient.organization.listUserInvitations()` 的结果映射为统一通知项并计算未读总数；封装 `<NotificationCenter />`（基于 shadcn `Popover` + 未读红点角标）挂载到顶部导航栏，内部按 `notification.type` 分发渲染对应卡片，邀请卡片支持直接接受/拒绝并自动刷新；**验收**：账号 A 发送邀请后，账号 B 右上角铃铛实时显示未读角标并可一键接受加入；类型结构支持后续零破坏新增其他通知类型。
+    - **8D 收尾**
+      - **8.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`；**验收**：四条命令全绿且零 Biome 报错。
+  - **阶段八完成标准**：邮件邀请 / 链接邀请 / 站内铃铛通知三条路径全部打通，邀请接受后自动切换工作区并跳转；类型结构预留后续业务通知扩展位；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
