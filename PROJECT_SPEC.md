@@ -266,6 +266,26 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **5.10 双端联调与收尾自检**：两个浏览器上下文登录同一工作区并打开同一项目，验证任务创建、跨列拖拽、编辑、删除与评论增删在另一端实时生效；模拟断网恢复后自动重连并补齐数据。依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错；双端实测全部通过。
   - **阶段五完成标准**：未认证或非工作区成员无法加入项目房间；同一项目内任一端对任务与评论的增删改移都会实时同步到另一端且无需刷新；断线重连后数据自动收敛；全部测试、类型检查、规范与构建命令通过。
 
+- **第六阶段（Phase 6）：用户资料设置与 Supabase Storage（S3 协议）头像上传**
+  - 支持在个人设置页上传头像（对象存储预签名直传）并修改显示名称。
+  - 头像在顶部导航、任务卡片、任务详情抽屉与评论列表中统一展示。
+  - **技术决策与前置约定**
+    - **标准 S3 兼容架构**：后端统一使用 `@aws-sdk/client-s3` 与 `@aws-sdk/s3-request-presigner`，连接 Supabase Storage 的 S3 兼容端点（必须开启 `forcePathStyle: true`），保持标准 S3 协议的通用性与可迁移性。
+    - **预签名直传（Presigned URL）**：图片二进制流严禁经过 NestJS 服务端。前端向 NestJS 申请预签名上传 URL → 前端使用独立无凭证的 `ky.put` 直传 Supabase Storage → 上传成功后调用 BetterAuth 的 `authClient.updateUser({ name, image })` 更新用户表。
+    - **安全边界**：在 `@repo/shared` 定义上传请求 Zod Schema，严格限制 `contentType` 仅允许 `image/jpeg`、`image/png`、`image/webp`，限制文件大小 `size <= 2 * 1024 * 1024`（2MB），服务端按 `avatars/${userId}/${Date.now()}-${randomUUID()}.${ext}` 生成隔离存储 Key，防止路径穿越与覆盖他人文件。
+  - **子任务拆解（6.1 – 6.6）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **6A 环境变量与共享契约**
+      - **6.1 环境变量与共享契约**：`.env.example` 补充 Supabase Storage S3 兼容环境变量（`S3_ENDPOINT`、`S3_REGION`、`S3_BUCKET`、`S3_ACCESS_KEY_ID`、`S3_SECRET_ACCESS_KEY`、`S3_PUBLIC_URL`）及注释示例；在 `@repo/shared` 新增 `presignUploadSchema`（校验 `contentType` 白名单与 `size <= 2MB`）及响应类型 `{ uploadUrl: string; publicUrl: string; key: string }`，并补充边界值 Vitest 单元测试。验收：`pnpm --filter @repo/shared test` 通过，`typecheck` 无 `any`。
+    - **6B 后端上传模块**
+      - **6.2 后端 UploadsModule（`apps/server`）**：安装 `@aws-sdk/client-s3`、`@aws-sdk/s3-request-presigner`；实现 `UploadsService` 与 `UploadsController`（`POST /uploads/presign`，受 `AuthGuard` 保护）：校验请求体，初始化 `S3Client`（`forcePathStyle: true`），生成有效期 300 秒的 `PutObjectCommand` 预签名 URL，并拼接 `${S3_PUBLIC_URL}/${key}` 返回最终可公开访问的图片地址。验收：`UploadsService` 单元测试覆盖「合法请求返回签名 URL / 非法 MIME 或超大小拒绝 / 缺失环境变量报错」。
+    - **6C 前端头像与资料设置**
+      - **6.3 通用头像组件 `<UserAvatar />`（`apps/web`）**：基于 shadcn `Avatar` 封装 `<UserAvatar user={{ name, email, image }} size="sm" | "md" | "lg" />`：优先展示 `user.image`；加载失败或为空时展示用户名首字母 `AvatarFallback`（并基于邮箱/ID 生成稳定背景色）；全局替换顶部导航用户菜单、任务卡片指派人、任务详情抽屉指派人、评论列表中的用户头像展示。验收：`typecheck` 通过，无头像用户展示统一样式的首字母头像。
+      - **6.4 个人资料设置页面（`/settings/profile`）**：在受保护路由下新增 `/settings/profile`，并在顶部导航用户下拉菜单中添加「个人设置 / Profile Settings」入口（补齐 `zh.json` 与 `en.json` 对应翻译 Key）；页面包含头像预览与上传区（支持点击或拖拽选择本地图片，前端前置校验格式与 2MB 限制，展示上传 Loading 状态）、显示名称（`name`）输入框（React Hook Form + Zod）。验收：i18n 类型检查通过，表单校验报错文案支持中英文切换。
+      - **6.5 上传直传与会话刷新联调**：封装 `uploadAvatar(file: File)` 工具函数：调用 `apiClient.post('uploads/presign')` 获取签名 → 使用独立干净的 `ky.put(uploadUrl, { body: file, headers: { 'Content-Type': file.type } })` 直传 Supabase（**严禁复用带 `prefixUrl` 和 `credentials: 'include'` 的 `apiClient`**，避免签名校验或跨域预检失败）→ 调用 `authClient.updateUser({ name, image: publicUrl })` 并刷新 BetterAuth session 缓存。验收：在 `.env` 填入 Supabase Storage 参数并创建公开桶 `collab-avatars` 后，实测上传头像成功，刷新页面后顶部导航、任务卡片和评论区的头像全部同步更新为云端图片。
+    - **6D 收尾**
+      - **6.6 收尾自检**：依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。验收：四条命令全绿且零 Biome 报错。
+  - **阶段六完成标准**：上传接口受认证保护且仅接受白名单 MIME 与 ≤2MB 文件；Supabase Storage 下可完成头像直传并刷新会话，导航、任务卡片、抽屉与评论头像同步更新；无头像用户统一展示首字母头像；全部测试、类型检查、规范与构建命令通过。
+
 ---
 
 ## 7. Agent 编码铁律（Coding Rules）
