@@ -180,6 +180,18 @@
       "sent": "已向 {{email}} 发送邀请。",
       "needActive": "请先选择一个工作区。",
       "failed": "邀请失败，请重试。"
+    },
+    "invitations": {
+      "title": "待处理邀请",
+      "loading": "加载邀请中…",
+      "empty": "还没有待处理的邀请。",
+      "loadFailed": "待处理邀请加载失败。",
+      "meta": "{{role}} · 有效期至 {{date}}",
+      "copy": "复制链接",
+      "copied": "已复制",
+      "copyFailed": "复制链接失败，请手动复制。",
+      "cancel": "撤销邀请",
+      "cancelFailed": "撤销邀请失败，请重试。"
     }
   },
   "settings": {

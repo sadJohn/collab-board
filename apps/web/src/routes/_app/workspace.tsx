@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { CreateOrganizationForm } from "../../components/workspace/create-organization-form";
 import { InviteMemberForm } from "../../components/workspace/invite-member-form";
+import { PendingInvitations } from "../../components/workspace/pending-invitations";
 import { authClient, useActiveOrganization, useListOrganizations } from "../../lib/auth-client";
 
 export const Route = createFileRoute("/_app/workspace")({
@@ -78,6 +79,7 @@ function WorkspacePage() {
 
       <CreateOrganizationForm onCreated={refreshSession} />
       <InviteMemberForm organizationId={activeOrganizationId} />
+      <PendingInvitations organizationId={activeOrganizationId} />
     </div>
   );
 }

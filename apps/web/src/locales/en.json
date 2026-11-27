@@ -180,6 +180,18 @@
       "sent": "Invitation sent to {{email}}.",
       "needActive": "Select a workspace first.",
       "failed": "Could not send the invitation. Try again."
+    },
+    "invitations": {
+      "title": "Pending invitations",
+      "loading": "Loading invitations…",
+      "empty": "No pending invitations.",
+      "loadFailed": "Could not load pending invitations.",
+      "meta": "{{role}} · expires {{date}}",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "copyFailed": "Could not copy the link. Copy it manually.",
+      "cancel": "Revoke",
+      "cancelFailed": "Could not revoke the invitation. Try again."
     }
   },
   "settings": {
