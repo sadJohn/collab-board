@@ -1,6 +1,15 @@
 export { Avatar, AvatarFallback, AvatarImage } from "./components/avatar";
 export { Button, type ButtonProps, buttonVariants } from "./components/button";
 export {
+  type ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "./components/chart";
+export {
   Command,
   CommandDialog,
   CommandEmpty,
