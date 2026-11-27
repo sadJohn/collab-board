@@ -5,10 +5,13 @@ import {
   computePosition,
   INITIAL_TASK_POSITION,
   type MoveTaskData,
+  SOCKET_EVENTS,
   TASK_POSITION_STEP,
+  type TaskDto,
   type TaskQuery,
   type UpdateTaskData,
 } from "@repo/shared";
+import { EventsService } from "../events/events.service";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
 
 export interface TaskPage {
@@ -18,9 +21,22 @@ export interface TaskPage {
   pageSize: number;
 }
 
+/** Serializes a Prisma task into the wire/ socket DTO (ISO timestamps). */
+function toTaskDto(task: Task): TaskDto {
+  return {
+    ...task,
+    dueDate: task.dueDate?.toISOString() ?? null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
 @Injectable()
 export class TasksService {
-  constructor(@Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA_CLIENT) private readonly prisma: PrismaClient,
+    private readonly events: EventsService,
+  ) {}
 
   async findAll(organizationId: string, projectId: string, query: TaskQuery): Promise<TaskPage> {
     await this.assertProjectInOrganization(organizationId, projectId);
@@ -70,22 +86,46 @@ export class TasksService {
     // New tasks always land at the bottom of their status column.
     const { position } = computePosition(lastTask?.position ?? null, null);
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: { ...data, position, creatorId },
     });
+
+    this.events.emitToProject(task.projectId, SOCKET_EVENTS.TASK_CREATED, {
+      task: toTaskDto(task),
+      actorId: creatorId,
+    });
+
+    return task;
   }
 
-  async update(organizationId: string, id: string, data: UpdateTaskData): Promise<Task> {
+  async update(
+    organizationId: string,
+    id: string,
+    data: UpdateTaskData,
+    actorId: string,
+  ): Promise<Task> {
     const task = await this.findOwnedTask(organizationId, id);
 
-    return this.prisma.task.update({
+    const updated = await this.prisma.task.update({
       where: { id: task.id },
       data,
     });
+
+    this.events.emitToProject(updated.projectId, SOCKET_EVENTS.TASK_UPDATED, {
+      task: toTaskDto(updated),
+      actorId,
+    });
+
+    return updated;
   }
 
-  async move(organizationId: string, id: string, data: MoveTaskData): Promise<Task> {
-    return this.prisma.$transaction(async (tx) => {
+  async move(
+    organizationId: string,
+    id: string,
+    data: MoveTaskData,
+    actorId: string,
+  ): Promise<Task> {
+    const { task: moved, fromStatus } = await this.prisma.$transaction(async (tx) => {
       const task = await tx.task.findFirst({
         where: { id, project: { organizationId } },
       });
@@ -123,16 +163,32 @@ export class TasksService {
         computed = computePosition(previousAfter?.position ?? null, nextAfter?.position ?? null);
       }
 
-      return tx.task.update({
+      const updated = await tx.task.update({
         where: { id: task.id },
         data: { status: data.status, position: computed.position },
       });
+
+      return { task: updated, fromStatus: task.status };
     });
+
+    this.events.emitToProject(moved.projectId, SOCKET_EVENTS.TASK_MOVED, {
+      task: toTaskDto(moved),
+      actorId,
+      fromStatus,
+    });
+
+    return moved;
   }
 
-  async remove(organizationId: string, id: string): Promise<void> {
+  async remove(organizationId: string, id: string, actorId: string): Promise<void> {
     const task = await this.findOwnedTask(organizationId, id);
     await this.prisma.task.delete({ where: { id: task.id } });
+
+    this.events.emitToProject(task.projectId, SOCKET_EVENTS.TASK_DELETED, {
+      taskId: task.id,
+      projectId: task.projectId,
+      actorId,
+    });
   }
 
   private async findOwnedTask(organizationId: string, id: string): Promise<Task> {

@@ -60,27 +60,30 @@ export class TasksController {
   @Patch("tasks/:id")
   update(
     @CurrentOrganization() organizationId: string,
+    @CurrentUser() user: AuthUser,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(updateTaskSchema)) data: UpdateTaskData,
   ): Promise<Task> {
-    return this.tasksService.update(organizationId, id, data);
+    return this.tasksService.update(organizationId, id, data, user.id);
   }
 
   @Post("tasks/:id/move")
   move(
     @CurrentOrganization() organizationId: string,
+    @CurrentUser() user: AuthUser,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(moveTaskSchema)) data: MoveTaskData,
   ): Promise<Task> {
-    return this.tasksService.move(organizationId, id, data);
+    return this.tasksService.move(organizationId, id, data, user.id);
   }
 
   @Delete("tasks/:id")
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @CurrentOrganization() organizationId: string,
+    @CurrentUser() user: AuthUser,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.tasksService.remove(organizationId, id);
+    await this.tasksService.remove(organizationId, id, user.id);
   }
 }

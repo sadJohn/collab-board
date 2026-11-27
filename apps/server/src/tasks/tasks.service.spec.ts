@@ -1,7 +1,8 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { prisma, type Task } from "@repo/db";
-import type { TaskQuery } from "@repo/shared";
+import { SOCKET_EVENTS, type TaskQuery } from "@repo/shared";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import type { EventsService } from "../events/events.service";
 import { TasksService } from "./tasks.service";
 
 vi.mock("@repo/db", () => {
@@ -72,7 +73,9 @@ const pageQuery: TaskQuery = {
 };
 
 describe("TasksService", () => {
-  const service = new TasksService(prisma);
+  const emitToProject = vi.fn();
+  const events = { emitToProject } as unknown as EventsService;
+  const service = new TasksService(prisma, events);
 
   beforeEach(() => {
     taskFindFirst.mockReset();
@@ -82,6 +85,7 @@ describe("TasksService", () => {
     taskUpdate.mockReset();
     taskDelete.mockReset();
     projectFindFirst.mockReset();
+    emitToProject.mockReset();
   });
 
   describe("findAll", () => {
@@ -159,6 +163,21 @@ describe("TasksService", () => {
           creatorId: "user_1",
         }),
       });
+      expect(emitToProject).toHaveBeenCalledExactlyOnceWith(
+        "project_1",
+        SOCKET_EVENTS.TASK_CREATED,
+        {
+          task: expect.objectContaining({
+            id: "task_1",
+            projectId: "project_1",
+            position: 5000,
+            dueDate: null,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          }),
+          actorId: "user_1",
+        },
+      );
     });
 
     it("rejects creating a task in a project outside the organization", async () => {
@@ -176,6 +195,45 @@ describe("TasksService", () => {
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(taskCreate).not.toHaveBeenCalled();
+      expect(emitToProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("update", () => {
+    it("updates the task and broadcasts TASK_UPDATED once", async () => {
+      taskFindFirst.mockResolvedValue(buildTask());
+      taskUpdate.mockResolvedValue(buildTask({ title: "Renamed" }));
+
+      const updated = await service.update("org_1", "task_1", { title: "Renamed" }, "user_1");
+
+      expect(taskUpdate).toHaveBeenCalledWith({
+        where: { id: "task_1" },
+        data: { title: "Renamed" },
+      });
+      expect(emitToProject).toHaveBeenCalledExactlyOnceWith(
+        "project_1",
+        SOCKET_EVENTS.TASK_UPDATED,
+        {
+          task: expect.objectContaining({
+            id: "task_1",
+            title: "Renamed",
+            createdAt: "2026-01-01T00:00:00.000Z",
+          }),
+          actorId: "user_1",
+        },
+      );
+      expect(updated.title).toBe("Renamed");
+    });
+
+    it("does not broadcast when the task is outside the organization", async () => {
+      taskFindFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update("org_1", "task_other", { title: "Renamed" }, "user_1"),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(taskUpdate).not.toHaveBeenCalled();
+      expect(emitToProject).not.toHaveBeenCalled();
     });
   });
 
@@ -187,15 +245,30 @@ describe("TasksService", () => {
         .mockResolvedValueOnce(buildTask({ id: "task_next", position: 2000 }));
       taskUpdate.mockResolvedValue(buildTask({ status: "IN_PROGRESS", position: 1500 }));
 
-      await service.move("org_1", "task_1", {
-        status: "IN_PROGRESS",
-        previousTaskId: "task_prev",
-        nextTaskId: "task_next",
-      });
+      await service.move(
+        "org_1",
+        "task_1",
+        {
+          status: "IN_PROGRESS",
+          previousTaskId: "task_prev",
+          nextTaskId: "task_next",
+        },
+        "user_1",
+      );
 
       expect(taskUpdate).toHaveBeenCalledWith({
         where: { id: "task_1" },
         data: { status: "IN_PROGRESS", position: 1500 },
+      });
+      expect(emitToProject).toHaveBeenCalledExactlyOnceWith("project_1", SOCKET_EVENTS.TASK_MOVED, {
+        task: expect.objectContaining({
+          id: "task_1",
+          status: "IN_PROGRESS",
+          position: 1500,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        }),
+        actorId: "user_1",
+        fromStatus: "BACKLOG",
       });
     });
 
@@ -203,25 +276,37 @@ describe("TasksService", () => {
       taskFindFirst.mockResolvedValueOnce(buildTask({ id: "task_1" })).mockResolvedValueOnce(null);
 
       await expect(
-        service.move("org_1", "task_1", {
-          status: "TODO",
-          previousTaskId: "task_other_project",
-          nextTaskId: null,
-        }),
+        service.move(
+          "org_1",
+          "task_1",
+          {
+            status: "TODO",
+            previousTaskId: "task_other_project",
+            nextTaskId: null,
+          },
+          "user_1",
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(taskUpdate).not.toHaveBeenCalled();
+      expect(emitToProject).not.toHaveBeenCalled();
     });
 
     it("rejects moving a task from another organization", async () => {
       taskFindFirst.mockResolvedValue(null);
 
       await expect(
-        service.move("org_1", "task_other", {
-          status: "TODO",
-          previousTaskId: null,
-          nextTaskId: null,
-        }),
+        service.move(
+          "org_1",
+          "task_other",
+          {
+            status: "TODO",
+            previousTaskId: null,
+            nextTaskId: null,
+          },
+          "user_1",
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
+      expect(emitToProject).not.toHaveBeenCalled();
     });
   });
 
@@ -250,19 +335,27 @@ describe("TasksService", () => {
       taskFindFirst.mockResolvedValue(buildTask());
       taskDelete.mockResolvedValue(buildTask());
 
-      await service.remove("org_1", "task_1");
+      await service.remove("org_1", "task_1", "user_1");
 
       expect(taskFindFirst).toHaveBeenCalledWith({
         where: { id: "task_1", project: { organizationId: "org_1" } },
       });
       expect(taskDelete).toHaveBeenCalledWith({ where: { id: "task_1" } });
+      expect(emitToProject).toHaveBeenCalledExactlyOnceWith(
+        "project_1",
+        SOCKET_EVENTS.TASK_DELETED,
+        { taskId: "task_1", projectId: "project_1", actorId: "user_1" },
+      );
     });
 
     it("rejects deleting a task from another organization", async () => {
       taskFindFirst.mockResolvedValue(null);
 
-      await expect(service.remove("org_1", "task_other")).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.remove("org_1", "task_other", "user_1")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
       expect(taskDelete).not.toHaveBeenCalled();
+      expect(emitToProject).not.toHaveBeenCalled();
     });
   });
 });
