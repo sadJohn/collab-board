@@ -14,10 +14,13 @@ beforeEach(async () => {
   await i18n.changeLanguage("zh-CN");
   useUiStore.setState({
     language: "zh-CN",
+    theme: "system",
     sidebarCollapsed: false,
     activeTaskId: null,
     commandPaletteOpen: false,
   });
+  document.documentElement.classList.remove("dark");
+  document.documentElement.style.colorScheme = "";
 });
 
 describe("ui-store", () => {
@@ -37,6 +40,19 @@ describe("ui-store", () => {
     await i18n.changeLanguage("en-US");
 
     expect(useUiStore.getState().language).toBe("en-US");
+  });
+
+  it("persists the theme preference and applies it to the document", () => {
+    useUiStore.getState().setTheme("dark");
+
+    expect(useUiStore.getState().theme).toBe("dark");
+    expect(readPersistedState().theme).toBe("dark");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+
+    useUiStore.getState().setTheme("light");
+
+    expect(readPersistedState().theme).toBe("light");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
 
   it("starts with an expanded sidebar, no drawer and a closed palette", () => {

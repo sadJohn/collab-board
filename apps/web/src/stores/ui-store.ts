@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
+import {
+  applyTheme,
+  DEFAULT_THEME,
+  prefersDark,
+  resolveTheme,
+  type ThemePreference,
+} from "../lib/theme";
 import { tracker } from "../lib/tracker";
 import i18n, {
   DEFAULT_LANGUAGE,
@@ -11,6 +17,9 @@ import i18n, {
 interface UiState {
   language: SupportedLanguage;
   setLanguage: (language: SupportedLanguage) => void;
+  /** Light / dark / follow the OS; persisted so it survives reloads. */
+  theme: ThemePreference;
+  setTheme: (theme: ThemePreference) => void;
   /** Desktop sidebar collapse state, persisted so it survives reloads. */
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -41,6 +50,11 @@ export const useUiStore = create<UiState>()(
       setLanguage: (language) => {
         set({ language });
         void i18n.changeLanguage(language);
+      },
+      theme: DEFAULT_THEME,
+      setTheme: (theme) => {
+        set({ theme });
+        applyTheme(resolveTheme(theme, prefersDark()));
       },
       sidebarCollapsed: false,
       setSidebarCollapsed: (sidebarCollapsed) => {
@@ -77,12 +91,16 @@ export const useUiStore = create<UiState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         language: state.language,
+        theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) {
-          void i18n.changeLanguage(state.language);
+        if (!state) {
+          return;
         }
+
+        void i18n.changeLanguage(state.language);
+        applyTheme(resolveTheme(state.theme, prefersDark()));
       },
     },
   ),
