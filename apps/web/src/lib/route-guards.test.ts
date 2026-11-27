@@ -59,7 +59,7 @@ describe("redirectIfAuthenticated", () => {
 
     expect(isRedirect(error)).toBe(true);
     if (isRedirect(error)) {
-      expect(error.options.to).toBe("/home");
+      expect(error.options.to).toBe("/dashboard");
     }
   });
 

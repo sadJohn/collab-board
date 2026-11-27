@@ -16,6 +16,42 @@
     "getStarted": "Get started",
     "signIn": "Sign in"
   },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "badge": "Active workspace · {{workspace}}",
+    "newProject": "New project",
+    "newTask": "New task",
+    "chooseProject": "Pick a project, then create the task on its board",
+    "noProjectsForTask": "No projects yet. Create one first.",
+    "openCommand": "Open command palette (⌘K)",
+    "loading": "Loading dashboard…",
+    "loadFailed": "Could not load the dashboard. Try again.",
+    "noWorkspace": "Select or create a workspace to see your dashboard.",
+    "goWorkspace": "Go to workspace",
+    "stats": {
+      "assigned": "To do",
+      "inProgress": "In progress",
+      "overdue": "Overdue",
+      "completed": "Done"
+    },
+    "myTasks": {
+      "title": "My tasks",
+      "empty": "No open tasks assigned to you. Enjoy the quiet."
+    },
+    "projects": {
+      "title": "Project progress",
+      "empty": "No projects yet. Create the first one to start collaborating.",
+      "progress": "{{completed}} / {{total}} done"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "empty": "No new activity yet."
+    }
+  },
   "taskStatus": {
     "BACKLOG": "Backlog",
     "TODO": "To do",
