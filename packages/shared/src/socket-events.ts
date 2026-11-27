@@ -14,6 +14,8 @@ export const SOCKET_EVENTS = {
   TASK_DELETED: "task:deleted",
   COMMENT_ADDED: "comment:added",
   COMMENT_DELETED: "comment:deleted",
+  ROOM_PRESENCE_UPDATED: "presence:updated",
+  GET_ROOM_PRESENCE: "presence:get",
 } as const;
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS;
@@ -70,6 +72,29 @@ export const commentDeletedPayloadSchema = z.object({
 });
 export type CommentDeletedPayload = z.infer<typeof commentDeletedPayloadSchema>;
 
+/**
+ * Presence: lightweight snapshot of a user currently in a project room.
+ * Only public-facing fields — never expose passwords / session secrets.
+ */
+export const presenceUserSchema = z.object({
+  id: z.string().min(1, "presence user id 不能为空"),
+  name: z.string().min(1, "presence user name 不能为空"),
+  email: z.string().min(1, "presence user email 不能为空"),
+  image: z.string().nullable(),
+});
+export type PresenceUser = z.infer<typeof presenceUserSchema>;
+
+export const roomPresenceUpdatedPayloadSchema = z.object({
+  projectId: z.string().min(1, "projectId 不能为空"),
+  users: z.array(presenceUserSchema),
+});
+export type RoomPresenceUpdatedPayload = z.infer<typeof roomPresenceUpdatedPayloadSchema>;
+
+export const getRoomPresencePayloadSchema = z.object({
+  projectId: z.string().min(1, "projectId 不能为空"),
+});
+export type GetRoomPresencePayload = z.infer<typeof getRoomPresencePayloadSchema>;
+
 /** Runtime validation map, mainly used by the gateway and tests. */
 export const socketPayloadSchemas = {
   [SOCKET_EVENTS.TASK_CREATED]: taskCreatedPayloadSchema,
@@ -78,6 +103,8 @@ export const socketPayloadSchemas = {
   [SOCKET_EVENTS.TASK_DELETED]: taskDeletedPayloadSchema,
   [SOCKET_EVENTS.COMMENT_ADDED]: commentAddedPayloadSchema,
   [SOCKET_EVENTS.COMMENT_DELETED]: commentDeletedPayloadSchema,
+  [SOCKET_EVENTS.ROOM_PRESENCE_UPDATED]: roomPresenceUpdatedPayloadSchema,
+  [SOCKET_EVENTS.GET_ROOM_PRESENCE]: getRoomPresencePayloadSchema,
 } as const;
 
 export type SocketPayloadMap = {
@@ -95,6 +122,7 @@ export interface ServerToClientEvents {
   [SOCKET_EVENTS.TASK_DELETED]: (payload: TaskDeletedPayload) => void;
   [SOCKET_EVENTS.COMMENT_ADDED]: (payload: CommentAddedPayload) => void;
   [SOCKET_EVENTS.COMMENT_DELETED]: (payload: CommentDeletedPayload) => void;
+  [SOCKET_EVENTS.ROOM_PRESENCE_UPDATED]: (payload: RoomPresenceUpdatedPayload) => void;
 }
 
 export interface ClientToServerEvents {
@@ -105,5 +133,9 @@ export interface ClientToServerEvents {
   [SOCKET_EVENTS.LEAVE_PROJECT_ROOM]: (
     payload: JoinProjectRoomPayload,
     ack?: (response: RoomAck) => void,
+  ) => void;
+  [SOCKET_EVENTS.GET_ROOM_PRESENCE]: (
+    payload: GetRoomPresencePayload,
+    ack?: (response: RoomPresenceUpdatedPayload | { ok: false; error: string }) => void,
   ) => void;
 }

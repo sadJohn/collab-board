@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   joinProjectRoomSchema,
+  presenceUserSchema,
   projectRoomName,
+  roomPresenceUpdatedPayloadSchema,
+  getRoomPresencePayloadSchema,
   SOCKET_EVENTS,
   socketPayloadSchemas,
   type TaskDto,
@@ -87,5 +90,118 @@ describe("socket event contract", () => {
     expect(schema.safeParse({ ...payload, taskId: undefined }).success).toBe(false);
     expect(schema.safeParse({ ...payload, projectId: undefined }).success).toBe(false);
     expect(schema.safeParse({ ...payload, actorId: undefined }).success).toBe(false);
+  });
+
+  it("validates ROOM_PRESENCE_UPDATED against socketPayloadSchemas", () => {
+    const schema = socketPayloadSchemas[SOCKET_EVENTS.ROOM_PRESENCE_UPDATED];
+    const payload = {
+      projectId: "project_1",
+      users: [
+        { id: "u1", name: "Alice", email: "a@b.com", image: null },
+        { id: "u2", name: "Bob", email: "b@c.com", image: "https://cdn/avatar.png" },
+      ],
+    };
+    expect(schema.parse(payload)).toEqual(payload);
+    expect(schema.safeParse({ ...payload, projectId: "" }).success).toBe(false);
+    expect(schema.safeParse({ ...payload, users: undefined }).success).toBe(false);
+    // missing image field inside one user entry
+    expect(
+      schema.safeParse({
+        ...payload,
+        users: [{ id: "u1", name: "Alice", email: "a@b.com" }],
+      }).success,
+    ).toBe(false);
+    // empty string id rejected
+    expect(
+      schema.safeParse({
+        ...payload,
+        users: [{ id: "", name: "Alice", email: "a@b.com", image: null }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates GET_ROOM_PRESENCE against socketPayloadSchemas", () => {
+    const schema = socketPayloadSchemas[SOCKET_EVENTS.GET_ROOM_PRESENCE];
+    expect(schema.parse({ projectId: "project_1" })).toEqual({ projectId: "project_1" });
+    expect(schema.safeParse({ projectId: "" }).success).toBe(false);
+    expect(schema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("presenceUserSchema", () => {
+  const validUser = {
+    id: "user_1",
+    name: "Alice",
+    email: "alice@example.com",
+    image: null,
+  };
+
+  it("accepts a full user snapshot", () => {
+    expect(presenceUserSchema.parse(validUser)).toEqual(validUser);
+  });
+
+  it("accepts a user with an avatar URL", () => {
+    const withImage = { ...validUser, image: "https://cdn.example.com/avatar.png" };
+    expect(presenceUserSchema.parse(withImage)).toEqual(withImage);
+  });
+
+  it("rejects missing id / name / email", () => {
+    expect(presenceUserSchema.safeParse({ ...validUser, id: "" }).success).toBe(false);
+    expect(presenceUserSchema.safeParse({ ...validUser, name: "" }).success).toBe(false);
+    expect(presenceUserSchema.safeParse({ ...validUser, email: "" }).success).toBe(false);
+    expect(presenceUserSchema.safeParse({ name: "Alice", email: "a@b.com" }).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects missing image field", () => {
+    const { image: _omit, ...noImage } = validUser;
+    expect(presenceUserSchema.safeParse(noImage).success).toBe(false);
+  });
+});
+
+describe("roomPresenceUpdatedPayloadSchema", () => {
+  const alice = { id: "u1", name: "Alice", email: "a@b.com", image: null };
+  const bob = { id: "u2", name: "Bob", email: "b@c.com", image: "https://cdn/bob.png" };
+
+  it("accepts empty user list", () => {
+    expect(roomPresenceUpdatedPayloadSchema.parse({ projectId: "p1", users: [] })).toEqual({
+      projectId: "p1",
+      users: [],
+    });
+  });
+
+  it("accepts a populated list", () => {
+    const payload = { projectId: "p1", users: [alice, bob] };
+    expect(roomPresenceUpdatedPayloadSchema.parse(payload)).toEqual(payload);
+  });
+
+  it("rejects missing projectId", () => {
+    expect(
+      roomPresenceUpdatedPayloadSchema.safeParse({ projectId: "", users: [alice] }).success,
+    ).toBe(false);
+    expect(
+      roomPresenceUpdatedPayloadSchema.safeParse({ users: [alice] }).success,
+    ).toBe(false);
+  });
+
+  it("rejects malformed user entries inside the array", () => {
+    expect(
+      roomPresenceUpdatedPayloadSchema.safeParse({
+        projectId: "p1",
+        users: [{ id: "u1", name: "Alice" }],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("getRoomPresencePayloadSchema", () => {
+  it("accepts projectId", () => {
+    expect(getRoomPresencePayloadSchema.parse({ projectId: "p1" })).toEqual({ projectId: "p1" });
+  });
+
+  it("rejects missing or empty projectId", () => {
+    expect(getRoomPresencePayloadSchema.safeParse({}).success).toBe(false);
+    expect(getRoomPresencePayloadSchema.safeParse({ projectId: "" }).success).toBe(false);
   });
 });
