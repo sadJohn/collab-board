@@ -27,6 +27,7 @@ import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useDashboardRealtime } from "../hooks/use-dashboard-realtime";
 import { useNotifications } from "../hooks/use-notifications";
 import { getDashboard } from "../lib/api/dashboard";
 import { useActiveOrganization, useSession } from "../lib/auth-client";
@@ -105,6 +106,10 @@ export function DashboardPage() {
   const myTasks = dashboard?.myTasks ?? [];
   const projects = dashboard?.projects ?? [];
   const recentNotifications = notifications.slice(0, 5);
+  const projectIds = useMemo(() => projects.map((project) => project.id), [projects]);
+
+  // Live-refresh every aggregate when a teammate touches a task or comment.
+  useDashboardRealtime(projectIds);
 
   const dateFormatter = useMemo(
     () => new Intl.DateTimeFormat(i18n.language, { month: "short", day: "numeric" }),

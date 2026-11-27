@@ -95,6 +95,9 @@ export function useProjectRealtime(projectId: string): void {
 
     const handle = (plan: RealtimeCachePlan | null) => {
       applyPlan(queryClient, plan, organizationId, projectId);
+      // Dashboard aggregates (stats, my tasks, progress, charts) are derived
+      // from the same tasks, so any project broadcast makes them stale.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(organizationId) });
     };
 
     const onTaskCreated = (payload: TaskCreatedPayload) =>
@@ -124,6 +127,7 @@ export function useProjectRealtime(projectId: string): void {
           queryKey: queryKeys.tasks.all(organizationId, projectId),
         });
         void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(organizationId) });
       }
       connectedBefore.current = true;
     };
