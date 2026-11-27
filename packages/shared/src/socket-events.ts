@@ -13,6 +13,7 @@ export const SOCKET_EVENTS = {
   TASK_MOVED: "task:moved",
   TASK_DELETED: "task:deleted",
   COMMENT_ADDED: "comment:added",
+  COMMENT_DELETED: "comment:deleted",
 } as const;
 
 export type SocketEventKey = keyof typeof SOCKET_EVENTS;
@@ -61,6 +62,14 @@ export const commentAddedPayloadSchema = z.object({
 });
 export type CommentAddedPayload = z.infer<typeof commentAddedPayloadSchema>;
 
+export const commentDeletedPayloadSchema = z.object({
+  commentId: z.string().min(1),
+  taskId: z.string().min(1),
+  projectId: z.string().min(1),
+  actorId: actorIdSchema,
+});
+export type CommentDeletedPayload = z.infer<typeof commentDeletedPayloadSchema>;
+
 /** Runtime validation map, mainly used by the gateway and tests. */
 export const socketPayloadSchemas = {
   [SOCKET_EVENTS.TASK_CREATED]: taskCreatedPayloadSchema,
@@ -68,6 +77,7 @@ export const socketPayloadSchemas = {
   [SOCKET_EVENTS.TASK_MOVED]: taskMovedPayloadSchema,
   [SOCKET_EVENTS.TASK_DELETED]: taskDeletedPayloadSchema,
   [SOCKET_EVENTS.COMMENT_ADDED]: commentAddedPayloadSchema,
+  [SOCKET_EVENTS.COMMENT_DELETED]: commentDeletedPayloadSchema,
 } as const;
 
 export type SocketPayloadMap = {
@@ -85,6 +95,7 @@ export interface ServerToClientEvents {
   [SOCKET_EVENTS.TASK_MOVED]: (payload: TaskMovedPayload) => void;
   [SOCKET_EVENTS.TASK_DELETED]: (payload: TaskDeletedPayload) => void;
   [SOCKET_EVENTS.COMMENT_ADDED]: (payload: CommentAddedPayload) => void;
+  [SOCKET_EVENTS.COMMENT_DELETED]: (payload: CommentDeletedPayload) => void;
 }
 
 export interface ClientToServerEvents {

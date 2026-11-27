@@ -73,4 +73,19 @@ describe("socket event contract", () => {
     expect(schema.safeParse({ task, actorId: "u1", fromStatus: "BACKLOG" }).success).toBe(true);
     expect(schema.safeParse({ task, actorId: "u1", fromStatus: "ARCHIVED" }).success).toBe(false);
   });
+
+  it("validates deleted comment payloads", () => {
+    const schema = socketPayloadSchemas[SOCKET_EVENTS.COMMENT_DELETED];
+    const payload = {
+      commentId: "comment_1",
+      taskId: "task_1",
+      projectId: "project_1",
+      actorId: "u1",
+    };
+    expect(schema.parse(payload)).toEqual(payload);
+    expect(schema.safeParse({ ...payload, commentId: "" }).success).toBe(false);
+    expect(schema.safeParse({ ...payload, taskId: undefined }).success).toBe(false);
+    expect(schema.safeParse({ ...payload, projectId: undefined }).success).toBe(false);
+    expect(schema.safeParse({ ...payload, actorId: undefined }).success).toBe(false);
+  });
 });
