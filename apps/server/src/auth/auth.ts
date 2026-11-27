@@ -10,10 +10,19 @@ function frontendUrl(): string {
   return (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/+$/, "");
 }
 
-const githubClientId = process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+// GitHub is the only social provider this app requires: sign-in / sign-up both
+// expose it, so a missing credential must fail fast instead of silently hiding
+// the button and producing a confusing "provider not found" error later.
+if (!githubClientId || !githubClientSecret) {
+  throw new Error(
+    `缺少 GitHub OAuth 凭据：请在 .env 中设置 GITHUB_CLIENT_ID 与 GITHUB_CLIENT_SECRET，并将 OAuth App 回调地址配置为 ${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/api/auth/callback/github`,
+  );
+}
 
 /**
  * BetterAuth instance shared by the HTTP handler and the auth guard.
@@ -39,9 +48,7 @@ export const auth = betterAuth({
     },
   },
   socialProviders: {
-    ...(githubClientId && githubClientSecret
-      ? { github: { clientId: githubClientId, clientSecret: githubClientSecret } }
-      : {}),
+    github: { clientId: githubClientId, clientSecret: githubClientSecret },
     ...(googleClientId && googleClientSecret
       ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
       : {}),
