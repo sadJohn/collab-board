@@ -596,6 +596,57 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
         - **验收**：四条命令全绿且零 Biome 报错。
   - **阶段十五完成标准**：owner/admin 可安全编辑当前工作区名称与全局唯一 slug，仅 owner 可经完整 slug 确认后硬删除；服务端对 member、admin 越权删除及非成员跨租户请求均强制拒绝；删除后关联数据、所有受影响 Session 与 `lastActiveOrganizationId` 正确清理或回退，前端无旧缓存和空白页；新增文案中英双语对齐，全部测试、类型检查、规范与构建命令通过。
 
+- **第十六阶段（Phase 16）：项目设置 Tab（编辑、删除与角色权限控制）**
+  - 在项目详情页现有「看板 / 列表」Tab 之后新增「设置」Tab，集中提供当前项目的编辑与删除能力，复用现有项目表单字段与提交逻辑，不改变看板、列表的既有交互。
+  - **前置技术约定**
+    - **Tab 与路由**：在 `projects/$projectId/route.tsx` 的 Tab 栏中，「列表」之后新增「设置」，路由为 `/projects/$projectId/settings`。Tab 对所有成员可见；页面内容按角色区分：owner/admin 看到编辑表单与危险区，member 只看到项目信息与无权限说明，不渲染任何管理控件。
+    - **权限矩阵**：`owner` 与 `admin` 可编辑、可删除项目；`member` 两者均不可。角色字段兼容逗号分隔多角色格式，任一角色满足即可。前端隐藏只用于体验优化，服务端 `PATCH /projects/:id` 与 `DELETE /projects/:id` 必须以服务端解析出的成员角色强制校验，member 直接请求返回 `403`。创建项目沿用现有 Any member 行为，本阶段不调整。
+    - **管理范围**：仅管理当前项目；不新增软删除、归档、恢复、所有权转移或项目级成员，不改动项目 Key 的唯一性规则（同一工作区内唯一，跨项目可重复）。
+    - **表单复用**：抽取共享项目表单，创建与编辑共用同一字段布局、校验与错误提示；分别由 `createProjectSchema` 与 `updateProjectSchema` 驱动，编辑模式以当前项目值初始化。Key 冲突（`409`）在两处都映射到 `key` 字段的行内错误。
+    - **不可恢复硬删除**：不新增 `deletedAt`。删除必须在 Dialog 中说明将同时删除项目下的任务与评论，并要求输入当前项目完整 `key`（区分大小写）；不匹配时禁止提交且不得发出请求。确认 Key 只是前端防误操作措施，不能替代服务端鉴权。
+    - **删除一致性与收敛**：项目 → 任务 → 评论依赖现有 Prisma `onDelete: Cascade`；服务端在删除成功后已递增该工作区的 dashboard 版本。前端删除成功后必须清理项目详情、任务列表与看板相关缓存，清空活动任务抽屉，跳转 `/projects` 并刷新项目列表；失败时保留 Dialog 与输入并提示错误。若删除返回 `404`（项目已不存在），重新拉取后按已删除收敛，避免重复删除。
+    - **角色解析**：与 Phase 15 一致，使用 `useSession` + `useActiveOrganization().data.members` 按 `session.user.id` 查找当前成员角色；完整组织 ID 必须与当前项目所属工作区一致。加载中、请求失败、成员缺失或角色未知一律按无权限处理。
+    - **多语言对齐**：设置 Tab、编辑/删除按钮、确认 Dialog、权限说明与成功/失败提示同步补齐 `zh.json` / `en.json`。
+  - **子任务拆解（16.1 – 16.7）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **16A 服务端与前端权限契约**
+      - **16.1 服务端项目更新与删除角色校验（`apps/server`）**
+        - 新增 `CurrentMemberRole` 参数装饰器（复用 `OrganizationGuard` 已写入的 `request.memberRole`），在 `ProjectsController.update` / `remove` 中注入角色并传给 `ProjectsService`。
+        - `ProjectsService.update` / `remove` 在查询项目前后按 owner/admin 校验：非 owner/admin 抛出 `ForbiddenException`；项目查询仍按 `organizationId` 限定，跨工作区访问继续返回 `404`，不得泄露其他工作区项目是否存在。
+        - 在 `projects.service.spec.ts` 先补失败测试：owner、admin 可更新/删除；member、未知角色、缺失角色被拒绝且不落库；跨工作区项目仍为不存在。
+        - **验收**：`pnpm --filter @repo/server test` 与 `typecheck` 通过；现有创建、查询行为不变。
+      - **16.2 前端项目权限纯函数（`apps/web`）**
+        - 在 `lib/workspace-permissions.ts` 增加 `canManageProjects(role)`（owner/admin），复用现有逗号分隔多角色解析；缺失或未知角色返回 `false`。
+        - 在 `workspace-permissions.test.ts` 补充纯函数矩阵测试，覆盖单角色、多角色、空值与未知角色。
+        - **验收**：`pnpm --filter @repo/web test` 通过，权限判断与 Phase 15 工作区编辑保持一致。
+    - **16B 表单复用**
+      - **16.3 抽取共享项目表单（`apps/web`）**
+        - 新增 `components/project/project-form.tsx`，以 `mode: "create" | "edit"` 区分提交目标：create 调用 `createProject` 并使用 `createProjectSchema`，edit 调用 `updateProject` 并使用 `updateProjectSchema`，编辑模式用传入项目初始化 name/key/description。
+        - 两处共用 `FormTextField` / `FormTextareaField`、提交中禁用、取消按钮与 Key 冲突行内错误；成功后失效 `queryKeys.projects.all(organizationId)`，编辑模式同时失效 `queryKeys.projects.detail(organizationId, projectId)`。
+        - 改造 `create-project-dialog.tsx` 使用共享表单并保持现有创建流程与文案；新增编辑表单测试：预填当前值、提交正确 payload、成功后刷新详情与列表、`409` 映射到 `key`。
+        - **验收**：现有创建项目测试继续通过，新增编辑测试通过，创建与编辑不存在两套重复字段代码。
+    - **16C 设置 Tab 与删除**
+      - **16.4 设置 Tab 路由与编辑区（`apps/web`）**
+        - 新增 `routes/_app/projects/$projectId/settings.tsx`，在 `route.tsx` Tab 栏「列表」之后加入「设置」链接；Tab 对所有成员可见。
+        - 设置页按 16.2 的权限函数解析 owner/admin：有权限时渲染项目摘要、共享编辑表单与危险区；member 渲染只读提示，不渲染表单与删除入口。角色未解析完成时保持 fail-closed。
+        - 编辑成功后项目详情查询失效，页面标题、Key、描述与项目列表同步更新。
+        - **验收**：owner/admin 修改后在详情页与列表立即生效；member 无管理控件；直接访问设置路由不会出现空表单。
+      - **16.5 删除确认 Dialog 与状态收敛（`apps/web`）**
+        - 新增 `components/project/delete-project-dialog.tsx`，复用 `@repo/ui` Dialog / Input / destructive Button，仅 owner/admin 可见；展示将连带删除任务与评论的警告，要求输入完整项目 `key`，精确匹配才启用删除按钮。
+        - 提交使用独立在途锁防止关闭重开或双击造成重复删除；成功后清理项目详情、任务与看板缓存，`setActiveTaskId(null)`，跳转 `/projects` 并刷新列表；失败保留 Dialog 与输入并提示错误；`404` 经重新拉取后按已删除收敛。
+        - 在表单/Dialog 测试中覆盖：错误 Key 不发请求、正确 Key 只提交一次、成功后清理缓存并跳转、失败保留 Dialog、重复提交被拦截、member 无入口。
+        - **验收**：删除后列表、详情与工作台数据一致，不残留已删除项目的任务或缓存，不影响其他项目。
+    - **16D 联调与收尾**
+      - **16.6 多角色、跨租户与 UI 验收**
+        - 准备同一工作区的 owner/admin/member 三个账号：owner/admin 可编辑与删除；member 直接 `PATCH` / `DELETE` 返回 `403`；非成员跨工作区请求保持拒绝。
+        - 验证 Key 冲突提示、编辑后详情与列表同步、删除级联任务与评论、其他项目不受影响、删除后工作台统计刷新。
+        - 检查中英文、亮暗主题、移动端设置 Tab 与确认 Dialog 可用性，`resources.test.ts` 语言键对齐保持通过。
+        - **验收**：权限矩阵、跨租户拒绝、表单复用与删除收敛全部符合前置约定。
+      - **16.7 收尾自检**
+        - 依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+        - **验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十六完成标准**：项目详情页在「看板 / 列表」之后新增「设置」Tab；owner/admin 可通过复用表单编辑项目并经完整 Key 确认后硬删除，member 无管理入口且服务端强制拒绝越权请求；删除后任务、评论、缓存、列表与工作台状态正确收敛，其他项目与工作区不受影响；新增文案中英双语对齐，全部测试、类型检查、规范与构建命令通过。
+
+
 - **修复任务：登录后自动创建并激活默认工作区**
   - **1. 后端新用户自动创建默认工作区（`apps/server`）**
     - 在 `apps/server/src/auth/auth.ts` 的 `databaseHooks.user.create.after` 中实现：

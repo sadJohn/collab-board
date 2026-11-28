@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canDeleteWorkspace, canUpdateWorkspace } from "./workspace-permissions";
+import { canDeleteWorkspace, canManageProjects, canUpdateWorkspace } from "./workspace-permissions";
 
 describe("workspace permissions", () => {
   it("grants update only to owner and admin roles", () => {
@@ -21,5 +21,18 @@ describe("workspace permissions", () => {
       canDeleteWorkspace("member"),
       canDeleteWorkspace(undefined),
     ]).toEqual([true, true, false, false, false]);
+  });
+
+  it("grants project management only to owner and admin", () => {
+    expect([
+      canManageProjects("owner"),
+      canManageProjects("admin"),
+      canManageProjects("member,admin"),
+      canManageProjects(" member , owner "),
+      canManageProjects("member"),
+      canManageProjects("unknown"),
+      canManageProjects(""),
+      canManageProjects(undefined),
+    ]).toEqual([true, true, true, true, false, false, false, false]);
   });
 });

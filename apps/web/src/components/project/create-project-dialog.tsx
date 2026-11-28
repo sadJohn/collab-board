@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@repo/ui";
 import { useTranslation } from "react-i18next";
 
-import { CreateProjectForm } from "./create-project-form";
+import { ProjectForm } from "./project-form";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -24,7 +24,11 @@ export function CreateProjectDialog({
           <DialogDescription>{t("projects.create.subtitle")}</DialogDescription>
         </DialogHeader>
 
-        <CreateProjectForm onCreated={() => onOpenChange(false)} organizationId={organizationId} />
+        <ProjectForm
+          mode="create"
+          onSubmitted={() => onOpenChange(false)}
+          organizationId={organizationId}
+        />
       </DialogContent>
     </Dialog>
   );

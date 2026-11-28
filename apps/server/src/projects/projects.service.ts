@@ -1,9 +1,18 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { PrismaClient, Project } from "@repo/db";
 import type { CreateProjectData, UpdateProjectData } from "@repo/shared";
 import { PRISMA_CLIENT } from "../prisma/prisma.module";
 import { RedisService } from "../redis/redis.service";
 import { dashboardVersionKey } from "../redis/redis-keys";
+
+/** Roles allowed to edit or delete a project in the workspace. */
+const PROJECT_MANAGER_ROLES = new Set(["owner", "admin"]);
 
 /**
  * Prisma raises P2002 when a unique constraint is violated. Checking the code
@@ -55,7 +64,13 @@ export class ProjectsService {
     }
   }
 
-  async update(organizationId: string, id: string, data: UpdateProjectData): Promise<Project> {
+  async update(
+    organizationId: string,
+    id: string,
+    data: UpdateProjectData,
+    memberRole: string | undefined,
+  ): Promise<Project> {
+    this.assertCanManage(memberRole);
     await this.findOne(organizationId, id);
 
     try {
@@ -73,10 +88,20 @@ export class ProjectsService {
     }
   }
 
-  async remove(organizationId: string, id: string): Promise<void> {
+  async remove(organizationId: string, id: string, memberRole: string | undefined): Promise<void> {
+    this.assertCanManage(memberRole);
     await this.findOne(organizationId, id);
     await this.prisma.project.delete({ where: { id } });
     await this.invalidateDashboard(organizationId);
+  }
+
+  /** Only owners and admins may edit or delete a project. */
+  private assertCanManage(memberRole: string | undefined): void {
+    const isManager = memberRole?.split(",").some((role) => PROJECT_MANAGER_ROLES.has(role.trim()));
+
+    if (!isManager) {
+      throw new ForbiddenException("只有工作区所有者或管理员可以修改项目");
+    }
   }
 
   /** Bumps the workspace dashboard version so all cached dashboards go stale. */

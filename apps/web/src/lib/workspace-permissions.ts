@@ -11,3 +11,7 @@ export function canUpdateWorkspace(role: string | undefined): boolean {
 export function canDeleteWorkspace(role: string | undefined): boolean {
   return hasWorkspaceRole(role, ["owner"]);
 }
+
+export function canManageProjects(role: string | undefined): boolean {
+  return hasWorkspaceRole(role, ["owner", "admin"]);
+}

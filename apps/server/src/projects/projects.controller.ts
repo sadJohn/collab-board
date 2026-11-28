@@ -18,6 +18,7 @@ import {
   updateProjectSchema,
 } from "@repo/shared";
 import { AuthGuard } from "../auth/auth.guard";
+import { CurrentMemberRole } from "../auth/current-member-role.decorator";
 import { CurrentOrganization } from "../auth/current-organization.decorator";
 import { OrganizationGuard } from "../auth/organization.guard";
 import { ZodValidationPipe } from "../common/zod-validation.pipe";
@@ -52,18 +53,20 @@ export class ProjectsController {
   @Patch(":id")
   update(
     @CurrentOrganization() organizationId: string,
+    @CurrentMemberRole() memberRole: string,
     @Param("id") id: string,
     @Body(new ZodValidationPipe(updateProjectSchema)) data: UpdateProjectData,
   ): Promise<Project> {
-    return this.projectsService.update(organizationId, id, data);
+    return this.projectsService.update(organizationId, id, data, memberRole);
   }
 
   @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @CurrentOrganization() organizationId: string,
+    @CurrentMemberRole() memberRole: string,
     @Param("id") id: string,
   ): Promise<void> {
-    await this.projectsService.remove(organizationId, id);
+    await this.projectsService.remove(organizationId, id, memberRole);
   }
 }

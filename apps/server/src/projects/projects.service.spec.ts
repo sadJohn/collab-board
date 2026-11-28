@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { type Project, prisma } from "@repo/db";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { RedisService } from "../redis/redis.service";
@@ -103,25 +103,88 @@ describe("ProjectsService", () => {
     expect(incr).not.toHaveBeenCalled();
   });
 
+  it("lets owners and admins update a project", async () => {
+    findFirst.mockResolvedValue(buildProject());
+    update.mockResolvedValue(buildProject({ name: "Renamed" }));
+
+    await service.update("org_1", "project_1", { name: "Renamed" }, "owner");
+    await service.update("org_1", "project_1", { name: "Renamed" }, "admin");
+
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(incr).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts comma-separated multi-role values", async () => {
+    findFirst.mockResolvedValue(buildProject());
+    update.mockResolvedValue(buildProject({ name: "Renamed" }));
+    remove.mockResolvedValue(buildProject());
+
+    await service.update("org_1", "project_1", { name: "Renamed" }, "member,admin");
+    await service.update("org_1", "project_1", { name: "Renamed" }, "admin, member");
+    await service.remove("org_1", "project_1", "member, owner");
+
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects members updating or deleting without touching the database", async () => {
+    await expect(
+      service.update("org_1", "project_1", { name: "Renamed" }, "member"),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.remove("org_1", "project_1", "member")).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("fails closed for an unknown or missing role", async () => {
+    await expect(
+      service.update("org_1", "project_1", { name: "Renamed" }, "unknown"),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.update("org_1", "project_1", { name: "Renamed" }, undefined),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.remove("org_1", "project_1", undefined)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it("refuses to update a project from another organization", async () => {
     findFirst.mockResolvedValue(null);
 
-    await expect(service.update("org_1", "project_1", { name: "Renamed" })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.update("org_1", "project_1", { name: "Renamed" }, "owner"),
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("deletes only after verifying the project belongs to the organization", async () => {
+  it("lets owners and admins delete after verifying the organization", async () => {
     findFirst.mockResolvedValue(buildProject());
     remove.mockResolvedValue(buildProject());
 
-    await service.remove("org_1", "project_1");
+    await service.remove("org_1", "project_1", "owner");
+    await service.remove("org_1", "project_1", "admin");
 
     expect(findFirst).toHaveBeenCalledWith({
       where: { id: "project_1", organizationId: "org_1" },
     });
     expect(remove).toHaveBeenCalledWith({ where: { id: "project_1" } });
-    expect(incr).toHaveBeenCalledWith("dashboard:ver:org_1");
+    expect(incr).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a project from another organization hidden when deleting", async () => {
+    findFirst.mockResolvedValue(null);
+
+    await expect(service.remove("org_1", "project_1", "owner")).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(remove).not.toHaveBeenCalled();
   });
 });

@@ -251,6 +251,33 @@
       "keyExists": "该项目标识已存在。",
       "failed": "创建项目失败，请重试。",
       "success": "项目已创建。"
+    },
+    "edit": {
+      "cancel": "取消",
+      "submit": "保存更改",
+      "submitting": "保存中…",
+      "success": "项目已更新。",
+      "failed": "更新项目失败，请重试。"
+    },
+    "settings": {
+      "tab": "设置",
+      "editTitle": "编辑项目",
+      "checking": "正在检查权限…",
+      "readOnly": "只有工作区所有者或管理员可以编辑此项目。",
+      "dangerTitle": "危险操作",
+      "dangerDescription": "删除项目会同时删除其下的所有任务与评论，且无法恢复。",
+      "deleteTrigger": "删除项目",
+      "deleteDialogTitle": "删除项目",
+      "deleteWarning": "这将永久删除项目「{{name}}」及其全部任务与评论，无法恢复。",
+      "deleteFormLabel": "删除项目确认",
+      "deleteConfirmationLabel": "项目标识",
+      "deleteConfirmationHint": "输入 {{key}} 以确认删除。",
+      "deleteMismatch": "项目标识不匹配。",
+      "deleteCancel": "取消",
+      "deleteSubmit": "永久删除",
+      "deleteSubmitting": "删除中…",
+      "deleteSuccess": "项目已删除。",
+      "deleteFailed": "删除项目失败，请重试。"
     }
   },
   "workspace": {

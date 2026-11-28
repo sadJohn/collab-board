@@ -171,6 +171,14 @@ function ProjectLayout() {
         >
           {t("projects.listTab")}
         </Link>
+        <Link
+          activeProps={{ className: ACTIVE_TAB_CLASS }}
+          className={TAB_CLASS}
+          params={{ projectId }}
+          to="/projects/$projectId/settings"
+        >
+          {t("projects.settings.tab")}
+        </Link>
       </nav>
 
       <Outlet />
