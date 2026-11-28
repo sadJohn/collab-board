@@ -1,10 +1,10 @@
 import { presignUploadResponseSchema, presignUploadSchema } from "@repo/shared";
 import ky from "ky";
 
-import { api } from "../api-client";
-import { authClient } from "../auth-client";
-import { queryClient } from "../query-client";
-import { queryKeys } from "../query-keys";
+import { api } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
+import { queryClient } from "@/lib/query-client";
+import { queryKeys } from "@/lib/query-keys";
 
 /**
  * Uploads an avatar and stores its public URL on the current user.

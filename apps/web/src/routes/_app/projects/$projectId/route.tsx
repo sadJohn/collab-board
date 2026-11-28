@@ -4,19 +4,19 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { OnlinePresenceAvatars } from "../../../../components/presence/online-presence-avatars";
-import { TaskDrawer } from "../../../../components/task/task-drawer";
-import { useProjectPresence } from "../../../../hooks/use-project-presence";
-import { useProjectRealtime } from "../../../../hooks/use-project-realtime";
-import { useProjectRoom } from "../../../../hooks/use-project-room";
-import { getProject } from "../../../../lib/api/projects";
-import { ApiError } from "../../../../lib/api-client";
-import { useSession } from "../../../../lib/auth-client";
-import { queryKeys } from "../../../../lib/query-keys";
-import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
-import { tracker } from "../../../../lib/tracker";
-import { useActiveWorkspace } from "../../../../lib/use-active-workspace";
-import { useUiStore } from "../../../../stores/ui-store";
+import { OnlinePresenceAvatars } from "@/components/presence/online-presence-avatars";
+import { TaskDrawer } from "@/components/task/task-drawer";
+import { useProjectPresence } from "@/hooks/use-project-presence";
+import { useProjectRealtime } from "@/hooks/use-project-realtime";
+import { useProjectRoom } from "@/hooks/use-project-room";
+import { getProject } from "@/lib/api/projects";
+import { ApiError } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
+import { DEFAULT_TASK_LIST_SEARCH } from "@/lib/task-search";
+import { tracker } from "@/lib/tracker";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useUiStore } from "@/stores/ui-store";
 
 /**
  * Optional `task` search param lets deep links (e.g. notification clicks) open

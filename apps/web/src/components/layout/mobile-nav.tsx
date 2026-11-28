@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useUiStore } from "../../stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 import { NavLinks } from "./nav-links";
 
 const DRAWER_TRANSITION = { duration: 0.25, ease: "easeOut" as const };

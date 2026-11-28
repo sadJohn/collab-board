@@ -1,7 +1,7 @@
 import { type RoomAck, SOCKET_EVENTS } from "@repo/shared";
 import { useEffect } from "react";
 
-import { socket } from "../lib/socket";
+import { socket } from "@/lib/socket";
 
 /**
  * Connects the shared socket and joins `project:${projectId}`.

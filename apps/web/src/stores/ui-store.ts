@@ -6,13 +6,13 @@ import {
   prefersDark,
   resolveTheme,
   type ThemePreference,
-} from "../lib/theme";
-import { tracker } from "../lib/tracker";
+} from "@/lib/theme";
+import { tracker } from "@/lib/tracker";
 import i18n, {
   DEFAULT_LANGUAGE,
   isSupportedLanguage,
   type SupportedLanguage,
-} from "../locales/i18n";
+} from "@/locales/i18n";
 
 interface UiState {
   language: SupportedLanguage;

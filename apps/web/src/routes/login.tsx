@@ -2,9 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { LoginForm } from "../components/auth/login-form";
-import { PublicPageControls } from "../components/public-page-controls";
-import { redirectIfAuthenticated } from "../lib/route-guards";
+import { LoginForm } from "@/components/auth/login-form";
+import { PublicPageControls } from "@/components/public-page-controls";
+import { redirectIfAuthenticated } from "@/lib/route-guards";
 
 const loginSearchSchema = z.object({
   redirect: z.string().optional(),

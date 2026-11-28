@@ -1,5 +1,5 @@
-import { ApiError } from "../api-client";
-import { authClient } from "../auth-client";
+import { ApiError } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 
 /**
  * Flattened member row for assignee pickers.

@@ -3,13 +3,12 @@ import { Button, Textarea } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { createComment, deleteComment, listComments } from "../../lib/api/comments";
-import { listMembers } from "../../lib/api/members";
-import { useSession } from "../../lib/auth-client";
-import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { UserAvatar } from "../user-avatar";
+import { UserAvatar } from "@/components/user-avatar";
+import { createComment, deleteComment, listComments } from "@/lib/api/comments";
+import { listMembers } from "@/lib/api/members";
+import { useSession } from "@/lib/auth-client";
+import { MEMBERS_STALE_TIME_MS, queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 interface TaskCommentsProps {
   taskId: string;

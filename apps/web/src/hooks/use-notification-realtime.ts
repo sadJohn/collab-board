@@ -1,10 +1,10 @@
 import { type NotificationDto, SOCKET_EVENTS } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import type { NotificationListResult } from "../lib/api/notifications";
-import { useSession } from "../lib/auth-client";
-import { queryKeys } from "../lib/query-keys";
-import { socket } from "../lib/socket";
+import type { NotificationListResult } from "@/lib/api/notifications";
+import { useSession } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
+import { socket } from "@/lib/socket";
 
 /** How many recent rows the inbox list keeps (mirrors the server cap). */
 const MAX_CACHED_NOTIFICATIONS = 30;

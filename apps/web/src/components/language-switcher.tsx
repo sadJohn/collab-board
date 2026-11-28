@@ -10,8 +10,8 @@ import {
 import { Check, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { SupportedLanguage } from "../locales/i18n";
-import { useUiStore } from "../stores/ui-store";
+import type { SupportedLanguage } from "@/locales/i18n";
+import { useUiStore } from "@/stores/ui-store";
 
 const OPTIONS = [
   { value: "zh-CN", labelKey: "language.zhCN" },

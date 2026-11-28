@@ -3,8 +3,8 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { PublicPageControls } from "../components/public-page-controls";
-import { sessionQueryOptions } from "../lib/session";
+import { PublicPageControls } from "@/components/public-page-controls";
+import { sessionQueryOptions } from "@/lib/session";
 
 /**
  * Public entry. Signed-in users go straight to their workspace dashboard;

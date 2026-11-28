@@ -27,14 +27,14 @@ import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDashboardRealtime } from "../hooks/use-dashboard-realtime";
-import { useNotifications } from "../hooks/use-notifications";
-import { getDashboard } from "../lib/api/dashboard";
-import { useSession } from "../lib/auth-client";
-import type { BusinessNotification } from "../lib/notifications";
-import { queryKeys } from "../lib/query-keys";
-import { useActiveWorkspace } from "../lib/use-active-workspace";
-import { useUiStore } from "../stores/ui-store";
+import { useDashboardRealtime } from "@/hooks/use-dashboard-realtime";
+import { useNotifications } from "@/hooks/use-notifications";
+import { getDashboard } from "@/lib/api/dashboard";
+import { useSession } from "@/lib/auth-client";
+import type { BusinessNotification } from "@/lib/notifications";
+import { queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useUiStore } from "@/stores/ui-store";
 import { DashboardCharts } from "./dashboard/dashboard-charts";
 import { CreateProjectDialog } from "./project/create-project-dialog";
 

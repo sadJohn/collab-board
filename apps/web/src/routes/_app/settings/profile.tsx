@@ -12,12 +12,12 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { FormTextField } from "../../../components/form/form-text-field";
-import { useZodForm } from "../../../components/form/use-zod-form";
-import { UserAvatar } from "../../../components/user-avatar";
-import { uploadAvatar } from "../../../lib/api/uploads";
-import { authClient, useSession } from "../../../lib/auth-client";
-import { queryKeys } from "../../../lib/query-keys";
+import { FormTextField } from "@/components/form/form-text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
+import { UserAvatar } from "@/components/user-avatar";
+import { uploadAvatar } from "@/lib/api/uploads";
+import { authClient, useSession } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
 
 export const Route = createFileRoute("/_app/settings/profile")({
   component: ProfileSettingsPage,

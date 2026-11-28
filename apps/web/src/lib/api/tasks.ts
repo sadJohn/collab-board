@@ -15,8 +15,8 @@ import {
   updateTaskSchema,
 } from "@repo/shared";
 
-import { api } from "../api-client";
-import { tracker } from "../tracker";
+import { api } from "@/lib/api-client";
+import { tracker } from "@/lib/tracker";
 
 export interface TaskListParams {
   q?: string;

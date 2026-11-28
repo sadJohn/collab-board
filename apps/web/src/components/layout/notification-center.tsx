@@ -9,16 +9,16 @@ import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
-} from "../../hooks/use-notifications";
-import { authClient, useListOrganizations } from "../../lib/auth-client";
+} from "@/hooks/use-notifications";
+import { authClient, useListOrganizations } from "@/lib/auth-client";
 import type {
   AppNotification,
   BusinessNotification,
   WorkspaceInvitationNotification,
-} from "../../lib/notifications";
-import { queryKeys } from "../../lib/query-keys";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
+} from "@/lib/notifications";
+import { queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useSwitchWorkspace } from "@/lib/use-switch-workspace";
 
 /**
  * Header inbox. Every notification type renders through its own branch, so new

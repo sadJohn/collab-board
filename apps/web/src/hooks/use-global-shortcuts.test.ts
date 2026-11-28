@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useUiStore } from "../stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 import { useGlobalShortcuts } from "./use-global-shortcuts";
 
 function pressKey(key: string, init: KeyboardEventInit = {}, target: EventTarget = document.body) {

@@ -4,10 +4,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CreateProjectDialog } from "../../../components/project/create-project-dialog";
-import { listProjects } from "../../../lib/api/projects";
-import { queryKeys } from "../../../lib/query-keys";
-import { useActiveWorkspace } from "../../../lib/use-active-workspace";
+import { CreateProjectDialog } from "@/components/project/create-project-dialog";
+import { listProjects } from "@/lib/api/projects";
+import { queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 export const Route = createFileRoute("/_app/projects/")({
   component: ProjectsPage,

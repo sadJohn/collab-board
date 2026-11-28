@@ -2,12 +2,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createProject } from "../../lib/api/projects";
-import { ApiError } from "../../lib/api-client";
-import i18n from "../../locales/i18n";
+import { createProject } from "@/lib/api/projects";
+import { ApiError } from "@/lib/api-client";
+import i18n from "@/locales/i18n";
 import { CreateProjectForm } from "./create-project-form";
 
-vi.mock("../../lib/api/projects", () => ({
+vi.mock("@/lib/api/projects", () => ({
   createProject: vi.fn(),
 }));
 

@@ -1,6 +1,6 @@
 import { type DashboardDto, dashboardDtoSchema } from "@repo/shared";
 
-import { api } from "../api-client";
+import { api } from "@/lib/api-client";
 
 /** Loads the aggregated workspace dashboard for the active organization. */
 export async function getDashboard(): Promise<DashboardDto> {

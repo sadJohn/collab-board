@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient } from "../../lib/auth-client";
-import { queryKeys } from "../../lib/query-keys";
+import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
 
 interface PendingInvitationsProps {
   organizationId: string | undefined;

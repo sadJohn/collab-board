@@ -2,7 +2,7 @@ import { Button } from "@repo/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient, useListOrganizations, useSession } from "../../lib/auth-client";
+import { authClient, useListOrganizations, useSession } from "@/lib/auth-client";
 import { CreateOrganizationForm } from "./create-organization-form";
 
 interface ActivationError {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import i18n from "../locales/i18n";
+import i18n from "@/locales/i18n";
 import { useUiStore } from "./ui-store";
 
 const STORAGE_KEY = "collab-board.ui";

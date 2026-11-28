@@ -1,6 +1,6 @@
 import { type AnalyticsDto, analyticsDtoSchema } from "@repo/shared";
 
-import { api } from "../api-client";
+import { api } from "@/lib/api-client";
 
 /**
  * Loads the 7-day product analytics aggregation for a workspace.

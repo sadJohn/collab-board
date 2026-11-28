@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { authClient } from "../../lib/auth-client";
-import i18n from "../../locales/i18n";
+import { authClient } from "@/lib/auth-client";
+import i18n from "@/locales/i18n";
 import { CreateOrganizationForm } from "./create-organization-form";
 import { InviteMemberForm } from "./invite-member-form";
 
-vi.mock("../../lib/auth-client", () => ({
+vi.mock("@/lib/auth-client", () => ({
   authClient: {
     organization: {
       create: vi.fn(),

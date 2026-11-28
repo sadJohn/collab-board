@@ -2,7 +2,7 @@ import { Button } from "@repo/ui";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient, useSession } from "../../lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 
 const PENDING_KEY = "collab-board.email-verification-pending";
 const COOLDOWN_SECONDS = 60;

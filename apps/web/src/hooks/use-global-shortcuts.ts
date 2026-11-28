@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { useUiStore } from "../stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 
 const EDITABLE_SELECTOR = "input, textarea, select, [contenteditable='true']";
 

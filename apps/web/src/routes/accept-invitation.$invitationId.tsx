@@ -4,7 +4,7 @@ import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-r
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient, useSession } from "../lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/accept-invitation/$invitationId")({
   component: AcceptInvitationPage,

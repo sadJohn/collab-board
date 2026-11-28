@@ -22,9 +22,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { getAnalytics } from "../../lib/api/analytics";
-import { queryKeys } from "../../lib/query-keys";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
+import { getAnalytics } from "@/lib/api/analytics";
+import { queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 export function AnalyticsPage() {
   const { t, i18n } = useTranslation();

@@ -1,15 +1,15 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { EmailVerificationBanner } from "../components/auth/email-verification-banner";
-import { CommandPalette } from "../components/command-palette";
-import { AppHeader } from "../components/layout/app-header";
-import { MobileNav } from "../components/layout/mobile-nav";
-import { NavLinks } from "../components/layout/nav-links";
-import { WorkspaceGate } from "../components/workspace/workspace-gate";
-import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
-import { useNotificationRealtime } from "../hooks/use-notification-realtime";
-import { usePageViewTracking } from "../hooks/use-page-view-tracking";
-import { requireSession } from "../lib/route-guards";
-import { useUiStore } from "../stores/ui-store";
+import { EmailVerificationBanner } from "@/components/auth/email-verification-banner";
+import { CommandPalette } from "@/components/command-palette";
+import { AppHeader } from "@/components/layout/app-header";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { NavLinks } from "@/components/layout/nav-links";
+import { WorkspaceGate } from "@/components/workspace/workspace-gate";
+import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
+import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
+import { usePageViewTracking } from "@/hooks/use-page-view-tracking";
+import { requireSession } from "@/lib/route-guards";
+import { useUiStore } from "@/stores/ui-store";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: ({ context, location }) => requireSession(context.queryClient, location.href),

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useUiStore } from "../stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 import { useListOrganizations, useSession } from "./auth-client";
 
 export interface ActiveWorkspace {

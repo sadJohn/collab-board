@@ -2,13 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { authClient } from "../../lib/auth-client";
-import { queryKeys } from "../../lib/query-keys";
-import i18n from "../../locales/i18n";
+import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
+import i18n from "@/locales/i18n";
 import { LoginForm } from "./login-form";
 import { RegisterForm } from "./register-form";
 
-vi.mock("../../lib/auth-client", () => ({
+vi.mock("@/lib/auth-client", () => ({
   authClient: {
     signIn: { email: vi.fn() },
     signUp: { email: vi.fn() },

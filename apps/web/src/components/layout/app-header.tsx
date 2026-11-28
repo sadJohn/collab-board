@@ -12,14 +12,13 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
-import { authClient, useListOrganizations, useSession } from "../../lib/auth-client";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
-import { useUiStore } from "../../stores/ui-store";
-import { LanguageSwitcher } from "../language-switcher";
-import { ThemeToggle } from "../theme-toggle";
-import { UserAvatar } from "../user-avatar";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatar } from "@/components/user-avatar";
+import { authClient, useListOrganizations, useSession } from "@/lib/auth-client";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useSwitchWorkspace } from "@/lib/use-switch-workspace";
+import { useUiStore } from "@/stores/ui-store";
 import { NotificationCenter } from "./notification-center";
 
 export function AppHeader() {

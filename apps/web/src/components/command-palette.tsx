@@ -14,13 +14,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useListOrganizations } from "../lib/auth-client";
-import { queryKeys } from "../lib/query-keys";
-import { DEFAULT_TASK_LIST_SEARCH } from "../lib/task-search";
-import { useActiveWorkspace } from "../lib/use-active-workspace";
-import { useSwitchWorkspace } from "../lib/use-switch-workspace";
-import type { SupportedLanguage } from "../locales/i18n";
-import { useUiStore } from "../stores/ui-store";
+import { useListOrganizations } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
+import { DEFAULT_TASK_LIST_SEARCH } from "@/lib/task-search";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useSwitchWorkspace } from "@/lib/use-switch-workspace";
+import type { SupportedLanguage } from "@/locales/i18n";
+import { useUiStore } from "@/stores/ui-store";
 
 /**
  * Global command palette (Cmd/Ctrl+K).

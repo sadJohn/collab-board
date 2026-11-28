@@ -2,10 +2,9 @@ import { type InviteMemberInput, inviteMemberSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { authClient } from "../../lib/auth-client";
-import { FormTextField } from "../form/form-text-field";
-import { useZodForm } from "../form/use-zod-form";
+import { FormTextField } from "@/components/form/form-text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
+import { authClient } from "@/lib/auth-client";
 
 interface InviteMemberFormProps {
   organizationId: string | undefined;

@@ -12,9 +12,9 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { listMembers } from "../../../../lib/api/members";
-import { deleteTask, listTasks, updateTask } from "../../../../lib/api/tasks";
-import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../../../lib/query-keys";
+import { listMembers } from "@/lib/api/members";
+import { deleteTask, listTasks, updateTask } from "@/lib/api/tasks";
+import { MEMBERS_STALE_TIME_MS, queryKeys } from "@/lib/query-keys";
 import {
   type BatchSummary,
   normalizeStatuses,
@@ -22,9 +22,9 @@ import {
   type TaskListSortField,
   taskListSearchSchema,
   toTaskListParams,
-} from "../../../../lib/task-search";
-import { useActiveWorkspace } from "../../../../lib/use-active-workspace";
-import { useUiStore } from "../../../../stores/ui-store";
+} from "@/lib/task-search";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useUiStore } from "@/stores/ui-store";
 
 export const Route = createFileRoute("/_app/projects/$projectId/list")({
   validateSearch: taskListSearchSchema,

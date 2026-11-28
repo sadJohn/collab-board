@@ -3,11 +3,10 @@ import { Input } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { createTask, moveTask } from "../../lib/api/tasks";
-import { queryKeys } from "../../lib/query-keys";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { useZodForm } from "../form/use-zod-form";
+import { useZodForm } from "@/components/form/use-zod-form";
+import { createTask, moveTask } from "@/lib/api/tasks";
+import { queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 interface QuickCreateTaskProps {
   projectId: string;

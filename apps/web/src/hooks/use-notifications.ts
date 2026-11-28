@@ -5,14 +5,14 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   type NotificationListResult,
-} from "../lib/api/notifications";
-import { authClient, useSession } from "../lib/auth-client";
+} from "@/lib/api/notifications";
+import { authClient, useSession } from "@/lib/auth-client";
 import {
   type AppNotification,
   toAppNotification,
   toBusinessNotification,
-} from "../lib/notifications";
-import { queryKeys } from "../lib/query-keys";
+} from "@/lib/notifications";
+import { queryKeys } from "@/lib/query-keys";
 
 export interface UseNotificationsResult {
   notifications: AppNotification[];

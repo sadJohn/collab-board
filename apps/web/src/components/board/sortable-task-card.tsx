@@ -3,8 +3,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { TaskDto } from "@repo/shared";
 import { motion } from "motion/react";
 
-import { TaskCard } from "../task/task-card";
-import type { UserAvatarUser } from "../user-avatar";
+import { TaskCard } from "@/components/task/task-card";
+import type { UserAvatarUser } from "@/components/user-avatar";
 
 interface SortableTaskCardProps {
   task: TaskDto;

@@ -8,7 +8,7 @@ import {
 } from "@repo/shared";
 import { z } from "zod";
 
-import { api } from "../api-client";
+import { api } from "@/lib/api-client";
 
 const projectListSchema = z.array(projectDtoSchema);
 

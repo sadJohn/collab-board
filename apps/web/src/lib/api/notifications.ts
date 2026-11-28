@@ -1,7 +1,7 @@
 import { type NotificationDto, notificationDtoSchema } from "@repo/shared";
 import { z } from "zod";
 
-import { api } from "../api-client";
+import { api } from "@/lib/api-client";
 
 /**
  * Wire shape of `GET /notifications`: the most recent rows plus the total

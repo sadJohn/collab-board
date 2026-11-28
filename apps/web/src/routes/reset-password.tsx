@@ -5,10 +5,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
-import { FormTextField } from "../components/form/form-text-field";
-import { useZodForm } from "../components/form/use-zod-form";
-import { PublicPageControls } from "../components/public-page-controls";
-import { authClient } from "../lib/auth-client";
+import { FormTextField } from "@/components/form/form-text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
+import { PublicPageControls } from "@/components/public-page-controls";
+import { authClient } from "@/lib/auth-client";
 
 const resetPasswordSearchSchema = z.object({
   token: z.string().optional(),

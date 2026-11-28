@@ -10,8 +10,8 @@ import {
 import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { ThemePreference } from "../lib/theme";
-import { useUiStore } from "../stores/ui-store";
+import type { ThemePreference } from "@/lib/theme";
+import { useUiStore } from "@/stores/ui-store";
 
 const OPTIONS = [
   { value: "light", icon: Sun, labelKey: "theme.light" },

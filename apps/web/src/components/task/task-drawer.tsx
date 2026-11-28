@@ -2,9 +2,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { getTask } from "../../lib/api/tasks";
-import { queryKeys } from "../../lib/query-keys";
-import { useUiStore } from "../../stores/ui-store";
+import { getTask } from "@/lib/api/tasks";
+import { queryKeys } from "@/lib/query-keys";
+import { useUiStore } from "@/stores/ui-store";
 import { TaskComments } from "./task-comments";
 import { TaskDetailForm } from "./task-detail-form";
 

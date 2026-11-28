@@ -1,7 +1,7 @@
 import type { TaskDto } from "@repo/shared";
 import { useTranslation } from "react-i18next";
 
-import { UserAvatar, type UserAvatarUser } from "../user-avatar";
+import { UserAvatar, type UserAvatarUser } from "@/components/user-avatar";
 
 interface TaskCardProps {
   task: TaskDto;

@@ -3,12 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { CreateOrganizationForm } from "../../components/workspace/create-organization-form";
-import { InviteMemberForm } from "../../components/workspace/invite-member-form";
-import { PendingInvitations } from "../../components/workspace/pending-invitations";
-import { useListOrganizations } from "../../lib/auth-client";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
+import { CreateOrganizationForm } from "@/components/workspace/create-organization-form";
+import { InviteMemberForm } from "@/components/workspace/invite-member-form";
+import { PendingInvitations } from "@/components/workspace/pending-invitations";
+import { useListOrganizations } from "@/lib/auth-client";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useSwitchWorkspace } from "@/lib/use-switch-workspace";
 
 export const Route = createFileRoute("/_app/workspace")({
   component: WorkspacePage,

@@ -2,8 +2,8 @@ import { fireEvent, render, renderHook, screen, waitFor } from "@testing-library
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { FormTextField } from "../components/form/form-text-field";
-import { useZodForm } from "../components/form/use-zod-form";
+import { FormTextField } from "@/components/form/form-text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
 import { authClient, useSession } from "./auth-client";
 
 const { fetchMock, restoreFetch } = vi.hoisted(() => {

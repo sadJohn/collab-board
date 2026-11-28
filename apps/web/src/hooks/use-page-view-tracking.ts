@@ -1,7 +1,7 @@
 import { useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { tracker } from "../lib/tracker";
+import { tracker } from "@/lib/tracker";
 
 /**
  * Emits a `PAGE_VIEW` for the current path on mount and on every subsequent

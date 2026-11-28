@@ -6,7 +6,7 @@ import {
 } from "@repo/shared";
 import { useEffect, useState } from "react";
 
-import { socket } from "../lib/socket";
+import { socket } from "@/lib/socket";
 
 /**
  * Tracks who is currently online in `project:${projectId}`.

@@ -20,15 +20,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { listMembers } from "../../lib/api/members";
-import { listTasks, moveTask } from "../../lib/api/tasks";
-import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
-import { type BoardDropTarget, planTaskMove, type TaskMovePlan } from "../../lib/task-board";
-import { tracker } from "../../lib/tracker";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { useUiStore } from "../../stores/ui-store";
-import { TaskCard } from "../task/task-card";
+import { TaskCard } from "@/components/task/task-card";
+import { listMembers } from "@/lib/api/members";
+import { listTasks, moveTask } from "@/lib/api/tasks";
+import { MEMBERS_STALE_TIME_MS, queryKeys } from "@/lib/query-keys";
+import { type BoardDropTarget, planTaskMove, type TaskMovePlan } from "@/lib/task-board";
+import { tracker } from "@/lib/tracker";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
+import { useUiStore } from "@/stores/ui-store";
 import { BoardColumn } from "./board-column";
 
 const BOARD_FILTERS = {

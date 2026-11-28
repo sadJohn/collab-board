@@ -12,14 +12,13 @@ import { useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import type { z } from "zod";
-
-import { listMembers } from "../../lib/api/members";
-import { updateTask } from "../../lib/api/tasks";
-import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
-import { useActiveWorkspace } from "../../lib/use-active-workspace";
-import { FormTextField } from "../form/form-text-field";
-import { FormTextareaField } from "../form/form-textarea-field";
-import { UserAvatar } from "../user-avatar";
+import { FormTextField } from "@/components/form/form-text-field";
+import { FormTextareaField } from "@/components/form/form-textarea-field";
+import { UserAvatar } from "@/components/user-avatar";
+import { listMembers } from "@/lib/api/members";
+import { updateTask } from "@/lib/api/tasks";
+import { MEMBERS_STALE_TIME_MS, queryKeys } from "@/lib/query-keys";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 type TaskFormValues = z.infer<typeof updateTaskSchema>;
 

@@ -3,11 +3,10 @@ import { Button } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { authClient } from "../../lib/auth-client";
-import { queryKeys } from "../../lib/query-keys";
-import { FormTextField } from "../form/form-text-field";
-import { useZodForm } from "../form/use-zod-form";
+import { FormTextField } from "@/components/form/form-text-field";
+import { useZodForm } from "@/components/form/use-zod-form";
+import { authClient } from "@/lib/auth-client";
+import { queryKeys } from "@/lib/query-keys";
 import { GithubSignInButton } from "./github-sign-in-button";
 
 interface LoginFormProps {

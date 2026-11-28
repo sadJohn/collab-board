@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useUiStore } from "../stores/ui-store";
+import { useUiStore } from "@/stores/ui-store";
 import { authClient, useSession } from "./auth-client";
 import { queryKeys } from "./query-keys";
 

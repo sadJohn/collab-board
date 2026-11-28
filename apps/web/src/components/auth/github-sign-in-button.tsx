@@ -2,7 +2,7 @@ import { Button } from "@repo/ui";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient } from "../../lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 
 /**
  * GitHub mark (16×16). lucide-react 1.x removed brand icons, so the official

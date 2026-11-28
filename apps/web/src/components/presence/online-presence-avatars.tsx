@@ -2,7 +2,7 @@ import type { PresenceUser } from "@repo/shared";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui";
 import { useTranslation } from "react-i18next";
 
-import { UserAvatar } from "../user-avatar";
+import { UserAvatar } from "@/components/user-avatar";
 
 /** Render at most this many avatars inline; anything beyond collapses to +N. */
 const MAX_VISIBLE = 5;

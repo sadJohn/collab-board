@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { OrganizationMember } from "../../lib/api/members";
+import type { OrganizationMember } from "@/lib/api/members";
 import { QuickCreateTask } from "./quick-create-task";
 import { SortableTaskCard } from "./sortable-task-card";
 

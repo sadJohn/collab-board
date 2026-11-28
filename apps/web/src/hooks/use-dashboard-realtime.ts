@@ -1,9 +1,9 @@
 import { SOCKET_EVENTS } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { queryKeys } from "../lib/query-keys";
-import { socket } from "../lib/socket";
-import { useActiveWorkspace } from "../lib/use-active-workspace";
+import { queryKeys } from "@/lib/query-keys";
+import { socket } from "@/lib/socket";
+import { useActiveWorkspace } from "@/lib/use-active-workspace";
 
 /** Task/comment broadcasts that can change any dashboard aggregate. */
 const DASHBOARD_EVENTS = [
