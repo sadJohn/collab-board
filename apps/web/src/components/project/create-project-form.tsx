@@ -1,8 +1,8 @@
 import { type CreateProjectData, createProjectSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { FormTextField } from "@/components/form/form-text-field";
 import { FormTextareaField } from "@/components/form/form-textarea-field";
 import { useZodForm } from "@/components/form/use-zod-form";
@@ -18,25 +18,23 @@ interface CreateProjectFormProps {
 export function CreateProjectForm({ organizationId, onCreated }: CreateProjectFormProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(createProjectSchema, {
     defaultValues: { name: "", key: "", description: "" },
   });
 
   async function onSubmit(values: CreateProjectData) {
-    setFormError(null);
-
     try {
       await createProject(values);
     } catch (error) {
       const apiError = toApiError(error);
-      setFormError(
+      toast.error(
         apiError.status === 409 ? t("projects.create.keyExists") : t("projects.create.failed"),
       );
       return;
     }
 
     form.reset();
+    toast.success(t("projects.create.success"));
     // The list is keyed by organization, so invalidating the scope refreshes it.
     await queryClient.invalidateQueries({ queryKey: queryKeys.projects.all(organizationId) });
     onCreated();
@@ -52,12 +50,6 @@ export function CreateProjectForm({ organizationId, onCreated }: CreateProjectFo
         name="key"
       />
       <FormTextareaField form={form} label={t("projects.create.description")} name="description" />
-
-      {formError ? (
-        <p className="text-destructive text-sm" role="alert">
-          {formError}
-        </p>
-      ) : null}
 
       <div className="flex justify-end gap-2">
         <Button

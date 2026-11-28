@@ -1,12 +1,12 @@
 import { Button } from "@repo/ui";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { authClient, useSession } from "@/lib/auth-client";
 
 const PENDING_KEY = "collab-board.email-verification-pending";
 const COOLDOWN_SECONDS = 60;
-const TOAST_DURATION_MS = 5000;
 
 /**
  * Reminds password accounts to verify their email.
@@ -25,8 +25,6 @@ export function EmailVerificationBanner() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showVerifiedToast, setShowVerifiedToast] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -40,18 +38,9 @@ export function EmailVerificationBanner() {
 
     if (window.localStorage.getItem(PENDING_KEY)) {
       window.localStorage.removeItem(PENDING_KEY);
-      setShowVerifiedToast(true);
+      toast.success(t("auth.verification.success"));
     }
-  }, [user, emailVerified]);
-
-  useEffect(() => {
-    if (!showVerifiedToast) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setShowVerifiedToast(false), TOAST_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [showVerifiedToast]);
+  }, [t, user, emailVerified]);
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -72,7 +61,6 @@ export function EmailVerificationBanner() {
 
     setSending(true);
     setSent(false);
-    setError(null);
 
     const { error: resendError } = await authClient.sendVerificationEmail({
       email: user.email,
@@ -82,7 +70,7 @@ export function EmailVerificationBanner() {
     setSending(false);
 
     if (resendError) {
-      setError(t("auth.verification.failed"));
+      toast.error(t("auth.verification.failed"));
       return;
     }
 
@@ -91,14 +79,7 @@ export function EmailVerificationBanner() {
   }
 
   if (!user || emailVerified !== false) {
-    return showVerifiedToast ? (
-      <div
-        className="fixed right-6 bottom-6 z-50 rounded-lg border bg-card px-4 py-3 text-sm shadow-lg"
-        role="status"
-      >
-        {t("auth.verification.success")}
-      </div>
-    ) : null;
+    return null;
   }
 
   return (
@@ -108,11 +89,6 @@ export function EmailVerificationBanner() {
         {sent ? (
           <p className="text-muted-foreground text-xs" role="status">
             {t("auth.verification.sent")}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="text-destructive text-xs" role="alert">
-            {error}
           </p>
         ) : null}
       </div>

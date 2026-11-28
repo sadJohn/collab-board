@@ -361,3 +361,91 @@
   - `apps/web/src/components/layout/nav-links.tsx`（新增）
   - `apps/web/src/routes/_app.tsx`
   - `apps/web/src/components/layout/mobile-nav.tsx`
+
+---
+
+### 优化（体验）— 用 sonner 统一提示：操作级错误/成功改 toast，字段校验与阻塞错误保留行内
+
+- **类型**：优化（体验）/ 优化（可维护性）
+- **状态**：已实施（2026-11-28，方案 B）
+- **问题/现象**：
+  1. 全仓没有集中式提示库。用户操作失败时的反馈散落在各组件里：用 `useState` 存 `formError`/`actionError`，再在表单里渲染一行 `<p className="text-destructive" role="alert">`；写法重复、样式与位置不统一。
+  2. 唯一的「toast」是 `email-verification-banner.tsx` 手写的：自己维护 `showVerifiedToast` 状态 + `setTimeout` 5s 自动消失 + `fixed` 定位，约 25 行样板。
+  3. 工作区切换失败把错误存进 `ui-store` 的 `workspaceSwitchError`，在 `app-header.tsx` 行内渲染 `<span role="alert">` 并另配一个 4s 自动消失的 `useEffect`——一个 transient 提示占用了全局 store 状态 + 订阅 + 定时器。
+  4. 部分关键成功操作（创建项目、创建工作区、重置密码）没有显式成功反馈，用户只能靠「对话框关了 / 跳转了」推断成功。
+- **根因**：
+  项目起步时没有引入 toast 库，各类反馈就地实现；随着功能增长，行内红字 + 手写 toast + store 驱动提示三套并存，既不统一也难维护。`@repo/ui` 也没有 toast 原语。
+- **方案（方案 B，已确认范围）**：
+  引入 `sonner`，在根布局挂一个 `<Toaster />`，把「**用户操作产生的瞬时反馈**」统一收敛为 toast；同时画清边界，**不**把本该留在原地的提示迁走。
+
+  **边界——迁 toast（瞬时、非上下文绑定）**：
+  - 操作失败：登录/注册/创建工作区/邀请成员/创建项目/新建任务/移动任务/保存任务/评论增删/头像上传/保存资料/改密/忘记密码/重置密码/通知中心接受/拒绝/全部已读/跨区跳转/工作区切换失败。
+  - 操作成功：邮箱验证（迁移手写 toast）、创建项目、创建工作区、重置密码（跳转前提示）。
+
+  **边界——保留行内（不迁，刻意为之）**：
+  - **字段级校验错误**：`components/form/form-field.tsx`（`FormTextField` / `FormTextareaField` 共用）渲染在输入框下方的 zod 错误——与字段绑定，必须留在原地。`quick-create-task.tsx` 的 `titleError` 同理（无 `role="alert"`，本就是行内字段错误）。
+  - **阻塞性加载 / 页面态错误**：查询失败时没有别的内容可展示、错误本身就是页面内容的——`reset-password` 缺 token（`missingToken`）、`accept-invitation` 邀请无效/加载失败（`isError`）、`pending-invitations` 列表加载失败（`isError`）、`notification-center` 列表加载失败（`isError`）、`workspace-gate` 激活失败（带 Retry 按钮的整屏 gate）。这类提示若变 toast，屏幕会一片空白，必须保留行内。
+  - **上下文型成功确认**：忘记密码 `sent`（替换表单的页面态）、邀请成员 `sentTo`（显示目标邮箱）、资料/改密 `saved`、拒绝邀请 `rejected`、验证邮件 `sent`——已经是就近、清晰的行内确认，无需改 toast。
+  - **纯信息提示**：`kanban-board` 的 `truncated` 截断说明。
+
+  实施要点：
+  - `<Toaster />` 挂在 `__root.tsx` 的 `RootLayout`（`TooltipProvider` 同级），`theme` 与应用 resolved theme 同步（见下），`position="top-right"`、`closeButton`、`richColors={false}`，外观通过 `index.css` 作用域样式映射到应用语义 token（`--card`/`--border`/`--card-foreground`/`--destructive` 等），亮/暗随 `html.dark` 自动切换，error/success 用左侧色条区分。
+  - 新增 `useResolvedTheme()`（`lib/use-resolved-theme.ts`）：订阅 `useUiStore` 的 `theme` 偏好 + `watchSystemTheme` 的 OS 变化，返回 `resolveTheme()` 结果，供 `<Toaster theme={...} />` 与将来需要 resolved theme 的组件复用。
+- **改动清单**：
+
+  **1. 基础设施**
+  1. `apps/web/package.json`：新增依赖 `sonner`；`pnpm install`。
+  2. 新增 `apps/web/src/lib/use-resolved-theme.ts`：返回响应式 resolved theme（light/dark）。
+  3. `apps/web/src/routes/__root.tsx`：`RootLayout` 内挂载 `<Toaster theme={useResolvedTheme()} position="top-right" closeButton richColors={false} />`。
+  4. `apps/web/src/index.css`：新增 sonner 作用域样式块，用应用 token 覆盖默认外观（含 `data-type="error"` / `data-type="success"` 色条）。
+
+  **2. 清理：工作区切换错误从 store 搬到 toast**
+  5. `apps/web/src/stores/ui-store.ts`：删除 `workspaceSwitchError` / `setWorkspaceSwitchError`（interface 字段、初始值、setter）。已确认无测试断言该字段。
+  6. `apps/web/src/lib/use-switch-workspace.ts`：失败分支的 `setError(null)` / `setError(message)` 改为 `toast.error(message || t("workspace.switchFailed"))`（保留 `latestTarget` 竞态守卫，只对最新目标弹一次）；成功分支的 `setError(null)` 删除。`SwitchWorkspaceResult` 返回接口不变（`notification-center` 仍读 `error`）。
+  7. `apps/web/src/components/layout/app-header.tsx`：删除 `workspaceSwitchError` / `clearWorkspaceSwitchError` 订阅、4s 自动消失的 `useEffect`、行内 `<span role="alert">`，以及 `handleSignOut` 里的 `clearWorkspaceSwitchError(null)`。
+
+  **3. 错误迁移：`setXxxError` → `toast.error`，删行内 `<p role="alert">` 与无用状态**
+  8. `components/auth/login-form.tsx`、`components/auth/register-form.tsx`：`formError` → `toast.error`；`GithubSignInButton` 的 `onError` 直接传 `toast.error`（签名兼容 `(message: string) => void`）；删状态与行内 alert。字段级校验仍由 `FormTextField` 行内展示，不动。
+  9. `routes/forgot-password.tsx`：`formError` → `toast.error`；`submitted` 行内成功保留。
+  10. `routes/reset-password.tsx`：提交 `formError` → `toast.error`；`missingToken` 页面态 alert 保留。成功分支在 `navigate` 前 `toast.success(t("auth.reset.success"))`。
+  11. `components/workspace/create-organization-form.tsx`：`formError` → `toast.error`；成功分支 `toast.success(t("workspace.create.success"))`。
+  12. `components/workspace/invite-member-form.tsx`：`formError` → `toast.error`；`sentTo` 行内成功保留。
+  13. `components/project/create-project-form.tsx`：`formError`（含 409 `keyExists` 与通用 `failed`）→ `toast.error`；成功分支 `toast.success(t("projects.create.success"))`。
+  14. `components/task/task-detail-form.tsx`：mutation `onError` 的 `setFormError` → `toast.error`。
+  15. `components/task/task-comments.tsx`：`createMutation` / `deleteMutation` 的 `onError` → `toast.error`；删 `error` 状态与行内 alert。
+  16. `components/board/quick-create-task.tsx`：`formError`（`board.createFailed`）→ `toast.error`；`titleError` 字段校验保留行内。
+  17. `components/board/kanban-board.tsx`：`moveFailed` → `toast.error`；删状态与行内 alert；`truncated` 信息提示保留。
+  18. `components/workspace/pending-invitations.tsx`：`actionError`（`copyFailed` / `cancelFailed`）→ `toast.error`；列表 `loadFailed`（`isError`）保留行内。
+  19. `routes/accept-invitation.$invitationId.tsx`：`actionError`（`acceptFailed` / `rejectFailed`）→ `toast.error`；邀请无效/加载失败的页面态 alert 保留行内。
+  20. `components/layout/notification-center.tsx`：`actionError`（接受/拒绝/跨区跳转失败/全部已读失败）→ `toast.error`；列表 `loadFailed`（`isError`）在 popover 内保留行内。`handleBusinessClick` 里 `switchTo` 返回的 `error` 也走 `toast.error`。
+  21. `routes/_app/settings/profile.tsx`：`avatarError` / `saveError` / `securityError` → `toast.error`；`saved` / `securitySaved` 行内成功保留。
+  22. `components/auth/email-verification-banner.tsx`：重发失败 `error` → `toast.error`；手写的 `showVerifiedToast`（状态 + `setTimeout` + `fixed` 定位 div + `TOAST_DURATION_MS`）整体删除，改为 `toast.success(t("auth.verification.success"))`；`sent` 行内状态与未验证 banner 保留。
+
+  **4. Locale（en/zh 必须对齐，受 `resources.test.ts` 约束）**
+  23. 新增 3 个成功 key（现有错误 key 全部已存在且两语言对齐，直接复用）：
+      - `workspace.create.success`、`projects.create.success`、`auth.reset.success`
+      - 同步写入 `apps/web/src/locales/en.json` 与 `zh.json`，键集对齐。
+      - 复用既有：`auth.verification.success`、`workspace.switchFailed`、`board.createFailed`、`board.moveFailed`、`task.saveFailed`、`task.commentFailed`、`task.commentDeleteFailed`、`settings.profile.saveFailed`、`settings.profile.avatar.uploadFailed`、`settings.security.invalidCurrent`、`settings.security.failed` 等。
+
+  **5. 测试更新（断言 `getByRole("alert")` 的用例需改为断言 toast）**
+  24. `components/auth/auth-forms.test.tsx`：登录失败、注册失败用例把 `screen.getByRole("alert")` 断言改为校验 toast 内容。
+  25. `components/project/create-project-form.test.tsx`：409 冲突与通用失败两条用例同上。
+  26. `components/workspace/workspace-forms.test.tsx`：`create-organization-form` 的「Slug already taken」用例（line 64）改 toast 断言；`invite-member-form` 的 `getByRole("status")` 成功用例（line 91）不变（`sentTo` 保留行内）。
+  27. 测试机制二选一（实施时定）：(a) 在受影响测试里 `vi.mock("sonner")` 暴露 `toast.error/success` 的 `vi.fn()`，断言调用参数（i18n 在测试里是真实实例，`t()` 会解析成最终文案，参数断言稳定）；或 (b) 渲染时挂载 `<Toaster />`，用 `screen.findByText(...)` 断言。推荐 (a)，不依赖 sonner 渲染时序。
+  28. `workspace-gate.test.tsx` 对 `getByRole("alert")` 的断言**不变**——`activationError` 属阻塞性 gate 错误，保留行内（见边界）。
+- **验证（已实施，2026-11-28）**：
+  - `apps/web`：`pnpm --filter @repo/web typecheck` 通过（exit 0）；`pnpm --filter @repo/web test` 全绿（17 文件 / 95 用例，含更新后的 toast 断言与 `resources.test.ts` 语言键对齐）；`pnpm biome check apps/web/src` 无报错（`--write` 自动整理了 7 个文件的 import 排序，复查干净）。
+  - 行为（按计划边界落地；以下为代码层面确认，未做人工 UI 回归）：
+    - 各操作失败 → `toast.error`，右上角弹出、自动消失；文案与原行内 alert 一致（复用同一 `t()` key）。字段校验错误仍由 `FormTextField` 在输入框下方行内展示。
+    - 创建项目/工作区、邮箱验证、重置密码成功 → `toast.success`。
+    - 工作区切换失败 → `use-switch-workspace` 走 `toast.error`，`ui-store` 不再持有 transient 错误，`app-header` 无行内红字与 4s 定时器。
+    - 阻塞/加载类错误（邀请无效、缺 token、列表加载失败、gate 激活失败）仍保留行内 `role="alert"`，屏幕不会空白；`workspace-gate.test.tsx` 断言未改。
+  - 主题：`<Toaster theme={useResolvedTheme()} position="top-right" closeButton richColors={false} />` 跟随应用亮/暗。`index.css` 用 `html body [data-sonner-toaster][data-sonner-theme="light"|"dark"]` 提升特异性覆盖 sonner 运行时注入样式，`--normal-bg/--normal-text/--normal-border` 映射到 `--card/--card-foreground/--border`，`--border-radius` 取 `--radius`，字体继承；`richColors={false}` 使变体 toast 保留卡片底色，差异由 sonner 内置变体图标（✓/⚠/✕）表达。
+  - 测试采用计划中的方案 (a)：三个受影响测试文件 `vi.mock("sonner")` 暴露 `toast.error/success` 的 `vi.fn()`，断言调用参数；`vi.mocked(toast.error)` 取 mock 实例以通过类型检查。
+- **相关文件**：
+  - 基础设施：`apps/web/package.json`、`apps/web/src/routes/__root.tsx`、`apps/web/src/lib/use-resolved-theme.ts`（新增）、`apps/web/src/index.css`
+  - 清理：`apps/web/src/stores/ui-store.ts`、`apps/web/src/lib/use-switch-workspace.ts`、`apps/web/src/components/layout/app-header.tsx`
+  - 错误迁移：`apps/web/src/components/auth/{login,register}-form.tsx`、`apps/web/src/components/auth/email-verification-banner.tsx`、`apps/web/src/routes/{forgot,reset}-password.tsx`、`apps/web/src/components/workspace/{create-organization,invite-member,pending-invitations}-form.tsx`（含 `pending-invitations.tsx`）、`apps/web/src/components/project/create-project-form.tsx`、`apps/web/src/components/task/{task-detail-form,task-comments}.tsx`、`apps/web/src/components/board/{quick-create-task,kanban-board}.tsx`、`apps/web/src/routes/accept-invitation.$invitationId.tsx`、`apps/web/src/components/layout/notification-center.tsx`、`apps/web/src/routes/_app/settings/profile.tsx`
+  - Locale：`apps/web/src/locales/en.json`、`apps/web/src/locales/zh.json`
+  - 测试：`apps/web/src/components/auth/auth-forms.test.tsx`、`apps/web/src/components/project/create-project-form.test.tsx`、`apps/web/src/components/workspace/workspace-forms.test.tsx`
+  - 参考（不动）：`apps/web/src/components/form/form-field.tsx`（字段校验行内，保留）、`apps/web/src/lib/theme.ts`（resolved theme 计算）

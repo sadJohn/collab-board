@@ -144,7 +144,8 @@
       "submitting": "Submitting…",
       "failed": "Couldn't reset the password. Request a new link.",
       "missingToken": "This reset link is invalid or has expired.",
-      "requestNew": "Request a new link"
+      "requestNew": "Request a new link",
+      "success": "Password reset. Sign in with your new password."
     }
   },
   "nav": {
@@ -250,7 +251,8 @@
       "submit": "Create project",
       "submitting": "Creating…",
       "keyExists": "A project with this key already exists.",
-      "failed": "Could not create the project. Try again."
+      "failed": "Could not create the project. Try again.",
+      "success": "Project created."
     }
   },
   "workspace": {
@@ -273,7 +275,8 @@
       "slugHint": "Lowercase letters, numbers and hyphens, e.g. acme-team",
       "submit": "Create",
       "submitting": "Creating…",
-      "failed": "Could not create the workspace. Try again."
+      "failed": "Could not create the workspace. Try again.",
+      "success": "Workspace created."
     },
     "invite": {
       "title": "Invite member",

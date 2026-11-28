@@ -4,6 +4,7 @@ import { useNavigate, useRouter } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import {
   useMarkAllNotificationsRead,
@@ -37,7 +38,6 @@ export function NotificationCenter() {
   const markAllRead = useMarkAllNotificationsRead();
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const timeFormatter = useMemo(
     () => new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "short" }),
@@ -45,7 +45,6 @@ export function NotificationCenter() {
   );
 
   async function handleAccept(notification: WorkspaceInvitationNotification) {
-    setActionError(null);
     setBusyId(notification.id);
 
     const { data, error } = await authClient.organization.acceptInvitation({
@@ -53,7 +52,7 @@ export function NotificationCenter() {
     });
 
     if (error) {
-      setActionError(error.message || t("notifications.invitation.acceptFailed"));
+      toast.error(error.message || t("notifications.invitation.acceptFailed"));
       setBusyId(null);
       return;
     }
@@ -70,7 +69,6 @@ export function NotificationCenter() {
   }
 
   async function handleReject(notification: WorkspaceInvitationNotification) {
-    setActionError(null);
     setBusyId(notification.id);
 
     const { error } = await authClient.organization.rejectInvitation({
@@ -78,7 +76,7 @@ export function NotificationCenter() {
     });
 
     if (error) {
-      setActionError(error.message || t("notifications.invitation.rejectFailed"));
+      toast.error(error.message || t("notifications.invitation.rejectFailed"));
       setBusyId(null);
       return;
     }
@@ -93,7 +91,6 @@ export function NotificationCenter() {
    * project board via the `?task=` deep link.
    */
   async function handleBusinessClick(notification: BusinessNotification) {
-    setActionError(null);
     const { projectId, taskId, organizationId } = notification.payload;
 
     // Optimistic cache update; the request itself must not block navigation.
@@ -105,7 +102,7 @@ export function NotificationCenter() {
       // navigating so the board's API calls hit the right workspace.
       const { ok, error } = await switchTo(organizationId);
       if (!ok) {
-        setActionError(error || t("notifications.business.switchFailed"));
+        toast.error(error || t("notifications.business.switchFailed"));
         return;
       }
     }
@@ -118,11 +115,10 @@ export function NotificationCenter() {
   }
 
   async function handleMarkAllRead() {
-    setActionError(null);
     try {
       await markAllRead.mutateAsync();
     } catch {
-      setActionError(t("notifications.markAllReadFailed"));
+      toast.error(t("notifications.markAllReadFailed"));
     }
   }
 
@@ -267,12 +263,6 @@ export function NotificationCenter() {
             <ul className="flex flex-col gap-2">{notifications.map(renderNotification)}</ul>
           ) : null}
         </div>
-
-        {actionError ? (
-          <p className="border-t px-4 py-2 text-destructive text-xs" role="alert">
-            {actionError}
-          </p>
-        ) : null}
       </PopoverContent>
     </Popover>
   );

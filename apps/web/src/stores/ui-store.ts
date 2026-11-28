@@ -41,9 +41,6 @@ interface UiState {
    */
   optimisticActiveOrganizationId: string | null;
   setOptimisticActiveOrganizationId: (organizationId: string | null) => void;
-  /** Error surfaced when the optimistic workspace switch fails to commit. */
-  workspaceSwitchError: string | null;
-  setWorkspaceSwitchError: (message: string | null) => void;
 }
 
 function resolveInitialLanguage(): SupportedLanguage {
@@ -106,10 +103,6 @@ export const useUiStore = create<UiState>()(
       optimisticActiveOrganizationId: null,
       setOptimisticActiveOrganizationId: (optimisticActiveOrganizationId) => {
         set({ optimisticActiveOrganizationId });
-      },
-      workspaceSwitchError: null,
-      setWorkspaceSwitchError: (workspaceSwitchError) => {
-        set({ workspaceSwitchError });
       },
     }),
     {

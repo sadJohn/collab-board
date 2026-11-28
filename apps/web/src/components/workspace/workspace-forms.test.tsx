@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { authClient } from "@/lib/auth-client";
 import i18n from "@/locales/i18n";
@@ -14,11 +15,16 @@ vi.mock("@/lib/auth-client", () => ({
   },
 }));
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
+
 type CreateResult = Awaited<ReturnType<typeof authClient.organization.create>>;
 type InviteResult = Awaited<ReturnType<typeof authClient.organization.inviteMember>>;
 
 const createOrganization = vi.mocked(authClient.organization.create);
 const inviteMember = vi.mocked(authClient.organization.inviteMember);
+const toastError = vi.mocked(toast.error);
 
 beforeAll(async () => {
   await i18n.changeLanguage("en-US");
@@ -27,6 +33,7 @@ beforeAll(async () => {
 beforeEach(() => {
   createOrganization.mockReset();
   inviteMember.mockReset();
+  toastError.mockReset();
 });
 
 describe("CreateOrganizationForm", () => {
@@ -61,7 +68,7 @@ describe("CreateOrganizationForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert").textContent).toBe("Slug already taken");
+      expect(toastError).toHaveBeenCalledWith("Slug already taken");
     });
     expect(onCreated).not.toHaveBeenCalled();
   });

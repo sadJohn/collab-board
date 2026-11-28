@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { authClient, useSession } from "@/lib/auth-client";
 
@@ -20,7 +21,6 @@ function AcceptInvitationPage() {
   const router = useRouter();
   const navigate = useNavigate();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [rejected, setRejected] = useState(false);
 
   const invitationQuery = useQuery({
@@ -43,13 +43,12 @@ function AcceptInvitationPage() {
   const invitation = invitationQuery.data;
 
   async function handleAccept() {
-    setActionError(null);
     setPendingAction("accept");
 
     const { data, error } = await authClient.organization.acceptInvitation({ invitationId });
 
     if (error) {
-      setActionError(error.message || t("invitation.acceptFailed"));
+      toast.error(error.message || t("invitation.acceptFailed"));
       setPendingAction(null);
       return;
     }
@@ -67,13 +66,12 @@ function AcceptInvitationPage() {
   }
 
   async function handleReject() {
-    setActionError(null);
     setPendingAction("reject");
 
     const { error } = await authClient.organization.rejectInvitation({ invitationId });
 
     if (error) {
-      setActionError(error.message || t("invitation.rejectFailed"));
+      toast.error(error.message || t("invitation.rejectFailed"));
       setPendingAction(null);
       return;
     }
@@ -168,12 +166,6 @@ function AcceptInvitationPage() {
             {t("invitation.expiresAt", { date: expiresAt })}
           </p>
         </div>
-
-        {actionError ? (
-          <p className="text-destructive text-sm" role="alert">
-            {actionError}
-          </p>
-        ) : null}
 
         <div className="flex gap-2">
           <Button disabled={pendingAction !== null} onClick={() => void handleAccept()}>

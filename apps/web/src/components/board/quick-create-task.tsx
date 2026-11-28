@@ -1,8 +1,8 @@
 import { createTaskSchema, type TaskStatus } from "@repo/shared";
 import { Input } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useZodForm } from "@/components/form/use-zod-form";
 import { createTask, moveTask } from "@/lib/api/tasks";
 import { queryKeys } from "@/lib/query-keys";
@@ -22,12 +22,9 @@ export function QuickCreateTask({ projectId, status, headTaskId, onClose }: Quic
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const organizationId = useActiveWorkspace().data?.id ?? "";
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(titleSchema, { defaultValues: { title: "" } });
 
   async function onSubmit(values: { title: string }) {
-    setFormError(null);
-
     try {
       const created = await createTask({ title: values.title, projectId, status });
 
@@ -45,7 +42,7 @@ export function QuickCreateTask({ projectId, status, headTaskId, onClose }: Quic
       });
       onClose();
     } catch {
-      setFormError(t("board.createFailed"));
+      toast.error(t("board.createFailed"));
     }
   }
 
@@ -66,11 +63,6 @@ export function QuickCreateTask({ projectId, status, headTaskId, onClose }: Quic
       />
       {typeof titleError === "string" ? (
         <p className="text-destructive text-xs">{titleError}</p>
-      ) : null}
-      {formError ? (
-        <p className="text-destructive text-xs" role="alert">
-          {formError}
-        </p>
       ) : null}
     </form>
   );

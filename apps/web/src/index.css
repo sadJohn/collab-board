@@ -25,3 +25,24 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
 }
+
+/*
+ * Sonner toasts: map sonner's theme variables onto the app's semantic tokens so
+ * toasts sit on the same card surface as the rest of the UI in both light and
+ * dark. `richColors` is off on the Toaster, so variant toasts keep the card
+ * background and rely on sonner's colored variant icon (red error / green
+ * check) for the success/error distinction. The `html body` prefix raises
+ * specificity above sonner's injected `[data-sonner-theme]` rules so these win
+ * regardless of stylesheet load order.
+ */
+[data-sonner-toaster] {
+  font-family: inherit;
+  --border-radius: var(--radius);
+}
+
+html body [data-sonner-toaster][data-sonner-theme="light"],
+html body [data-sonner-toaster][data-sonner-theme="dark"] {
+  --normal-bg: var(--card);
+  --normal-text: var(--card-foreground);
+  --normal-border: var(--border);
+}

@@ -1,8 +1,8 @@
 import { type ResetPasswordInput, resetPasswordSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { FormTextField } from "@/components/form/form-text-field";
@@ -23,7 +23,6 @@ function ResetPasswordPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { token } = Route.useSearch();
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm<ResetPasswordInput>(resetPasswordSchema, {
     defaultValues: { newPassword: "", confirmPassword: "" },
   });
@@ -33,18 +32,17 @@ function ResetPasswordPage() {
       return;
     }
 
-    setFormError(null);
-
     const { error } = await authClient.resetPassword({
       newPassword: values.newPassword,
       token,
     });
 
     if (error) {
-      setFormError(t("auth.reset.failed"));
+      toast.error(t("auth.reset.failed"));
       return;
     }
 
+    toast.success(t("auth.reset.success"));
     navigate({ to: "/login", replace: true });
   }
 
@@ -77,12 +75,6 @@ function ResetPasswordPage() {
               name="confirmPassword"
               type="password"
             />
-
-            {formError ? (
-              <p className="text-destructive text-sm" role="alert">
-                {formError}
-              </p>
-            ) : null}
 
             <Button disabled={form.formState.isSubmitting} type="submit">
               {form.formState.isSubmitting ? t("auth.reset.submitting") : t("auth.reset.submit")}

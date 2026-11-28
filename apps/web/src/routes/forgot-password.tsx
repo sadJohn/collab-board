@@ -3,6 +3,7 @@ import { Button } from "@repo/ui";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { FormTextField } from "@/components/form/form-text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
@@ -16,21 +17,18 @@ export const Route = createFileRoute("/forgot-password")({
 function ForgotPasswordPage() {
   const { t } = useTranslation();
   const [submitted, setSubmitted] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm<ForgotPasswordInput>(forgotPasswordSchema, {
     defaultValues: { email: "" },
   });
 
   async function onSubmit(values: ForgotPasswordInput) {
-    setFormError(null);
-
     const { error } = await authClient.requestPasswordReset({
       email: values.email,
       redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {
-      setFormError(t("auth.forgot.failed"));
+      toast.error(t("auth.forgot.failed"));
       return;
     }
 
@@ -65,12 +63,6 @@ function ForgotPasswordPage() {
               name="email"
               type="email"
             />
-
-            {formError ? (
-              <p className="text-destructive text-sm" role="alert">
-                {formError}
-              </p>
-            ) : null}
 
             <Button disabled={form.formState.isSubmitting} type="submit">
               {form.formState.isSubmitting ? t("auth.forgot.submitting") : t("auth.forgot.submit")}

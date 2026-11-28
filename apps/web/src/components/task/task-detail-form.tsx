@@ -8,9 +8,9 @@ import {
 } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { Controller, type Resolver, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type { z } from "zod";
 import { FormTextField } from "@/components/form/form-text-field";
 import { FormTextareaField } from "@/components/form/form-textarea-field";
@@ -44,7 +44,6 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
   const queryClient = useQueryClient();
   const { data, isSwitching } = useActiveWorkspace();
   const organizationId = data?.id ?? "";
-  const [formError, setFormError] = useState<string | null>(null);
 
   const membersQuery = useQuery({
     queryKey: queryKeys.members.list(organizationId),
@@ -92,11 +91,10 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
       if (context?.snapshot) {
         queryClient.setQueryData<TaskDto>(detailKey, context.snapshot);
       }
-      setFormError(t("task.saveFailed"));
+      toast.error(t("task.saveFailed"));
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<TaskDto>(detailKey, updated);
-      setFormError(null);
     },
     onSettled: async () => {
       // Keep the board and list in sync even while the drawer is open.
@@ -110,8 +108,6 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
   });
 
   async function onSubmit(values: TaskFormValues) {
-    setFormError(null);
-
     try {
       await mutation.mutateAsync({
         title: values.title,
@@ -223,12 +219,6 @@ export function TaskDetailForm({ task }: TaskDetailFormProps) {
           )}
         />
       </div>
-
-      {formError ? (
-        <p className="text-destructive text-sm" role="alert">
-          {formError}
-        </p>
-      ) : null}
 
       <div className="flex justify-end">
         <Button disabled={mutation.isPending} type="submit">

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createProject } from "@/lib/api/projects";
@@ -11,7 +12,13 @@ vi.mock("@/lib/api/projects", () => ({
   createProject: vi.fn(),
 }));
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
+
 const createProjectMock = vi.mocked(createProject);
+const toastError = vi.mocked(toast.error);
+const toastSuccess = vi.mocked(toast.success);
 
 beforeAll(async () => {
   await i18n.changeLanguage("en-US");
@@ -19,6 +26,8 @@ beforeAll(async () => {
 
 beforeEach(() => {
   createProjectMock.mockReset();
+  toastError.mockReset();
+  toastSuccess.mockReset();
 });
 
 function renderForm() {
@@ -82,7 +91,7 @@ describe("CreateProjectForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert").textContent).toBe("A project with this key already exists.");
+      expect(toastError).toHaveBeenCalledWith("A project with this key already exists.");
     });
     expect(onCreated).not.toHaveBeenCalled();
   });
@@ -95,9 +104,7 @@ describe("CreateProjectForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create project" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert").textContent).toBe(
-        "Could not create the project. Try again.",
-      );
+      expect(toastError).toHaveBeenCalledWith("Could not create the project. Try again.");
     });
   });
 });

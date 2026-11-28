@@ -7,7 +7,8 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { I18nextProvider, useTranslation } from "react-i18next";
-
+import { Toaster } from "sonner";
+import { useResolvedTheme } from "@/lib/use-resolved-theme";
 import i18n from "@/locales/i18n";
 
 export interface RouterContext {
@@ -22,12 +23,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootLayout() {
   const { queryClient } = Route.useRouteContext();
+  const theme = useResolvedTheme();
 
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={150}>
           <Outlet />
+          <Toaster theme={theme} position="top-right" closeButton richColors={false} />
         </TooltipProvider>
       </QueryClientProvider>
     </I18nextProvider>

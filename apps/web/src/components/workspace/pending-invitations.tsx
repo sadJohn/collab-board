@@ -2,6 +2,7 @@ import { Button } from "@repo/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
 import { queryKeys } from "@/lib/query-keys";
@@ -19,7 +20,6 @@ export function PendingInvitations({ organizationId }: PendingInvitationsProps) 
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const organizationIdValue = organizationId ?? "";
   const queryKey = queryKeys.invitations.list(organizationIdValue);
 
@@ -47,7 +47,6 @@ export function PendingInvitations({ organizationId }: PendingInvitationsProps) 
   const invitations = invitationsQuery.data ?? [];
 
   async function handleCopy(invitationId: string) {
-    setActionError(null);
     const url = `${window.location.origin}/accept-invitation/${invitationId}`;
 
     try {
@@ -57,17 +56,15 @@ export function PendingInvitations({ organizationId }: PendingInvitationsProps) 
         setCopiedId((current) => (current === invitationId ? null : current));
       }, 2000);
     } catch {
-      setActionError(t("workspace.invitations.copyFailed"));
+      toast.error(t("workspace.invitations.copyFailed"));
     }
   }
 
   async function handleCancel(invitationId: string) {
-    setActionError(null);
-
     const { error } = await authClient.organization.cancelInvitation({ invitationId });
 
     if (error) {
-      setActionError(error.message || t("workspace.invitations.cancelFailed"));
+      toast.error(error.message || t("workspace.invitations.cancelFailed"));
       return;
     }
 
@@ -90,12 +87,6 @@ export function PendingInvitations({ organizationId }: PendingInvitationsProps) 
 
       {!invitationsQuery.isPending && !invitationsQuery.isError && invitations.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("workspace.invitations.empty")}</p>
-      ) : null}
-
-      {actionError ? (
-        <p className="text-destructive text-sm" role="alert">
-          {actionError}
-        </p>
       ) : null}
 
       <ul className="flex flex-col gap-2">

@@ -1,8 +1,8 @@
 import { type SignUpInput, signUpSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { FormTextField } from "@/components/form/form-text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import { authClient } from "@/lib/auth-client";
@@ -16,14 +16,11 @@ interface RegisterFormProps {
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(signUpSchema, {
     defaultValues: { email: "", password: "" },
   });
 
   async function onSubmit(values: SignUpInput) {
-    setFormError(null);
-
     // BetterAuth requires a display name; derive it until profile editing exists.
     const name = values.email.split("@")[0] ?? values.email;
     const { error } = await authClient.signUp.email({
@@ -35,7 +32,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     });
 
     if (error) {
-      setFormError(error.message || t("auth.signUp.failed"));
+      toast.error(error.message || t("auth.signUp.failed"));
       return;
     }
 
@@ -66,12 +63,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         type="password"
       />
 
-      {formError ? (
-        <p className="text-destructive text-sm" role="alert">
-          {formError}
-        </p>
-      ) : null}
-
       <Button disabled={form.formState.isSubmitting} type="submit">
         {form.formState.isSubmitting ? t("auth.signUp.submitting") : t("auth.signUp.submit")}
       </Button>
@@ -82,7 +73,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <GithubSignInButton onError={setFormError} />
+      <GithubSignInButton onError={(message) => toast.error(message)} />
     </form>
   );
 }

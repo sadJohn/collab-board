@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { FormTextField } from "@/components/form/form-text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
@@ -34,15 +35,12 @@ function ProfileSettingsPage() {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [securitySaving, setSecuritySaving] = useState(false);
   const [securitySaved, setSecuritySaved] = useState(false);
-  const [securityError, setSecurityError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const form = useZodForm<UpdateProfileInput>(updateProfileSchema, {
@@ -79,19 +77,17 @@ function ProfileSettingsPage() {
     }
 
     setSaved(false);
-    setSaveError(null);
 
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      setAvatarError(t("settings.profile.avatar.invalidType"));
+      toast.error(t("settings.profile.avatar.invalidType"));
       return;
     }
 
     if (file.size > AVATAR_MAX_FILE_SIZE) {
-      setAvatarError(t("settings.profile.avatar.tooLarge"));
+      toast.error(t("settings.profile.avatar.tooLarge"));
       return;
     }
 
-    setAvatarError(null);
     setSelectedName(file.name);
     setPreviewUrl(URL.createObjectURL(file));
     void uploadFile(file);
@@ -110,7 +106,7 @@ function ProfileSettingsPage() {
     } catch {
       setPreviewUrl(null);
       setSelectedName(null);
-      setAvatarError(t("settings.profile.avatar.uploadFailed"));
+      toast.error(t("settings.profile.avatar.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -141,7 +137,6 @@ function ProfileSettingsPage() {
   async function onSubmit(values: UpdateProfileInput) {
     setSaving(true);
     setSaved(false);
-    setSaveError(null);
 
     try {
       const { error } = await authClient.updateUser({ name: values.name });
@@ -154,7 +149,7 @@ function ProfileSettingsPage() {
       await router.invalidate();
       setSaved(true);
     } catch {
-      setSaveError(t("settings.profile.saveFailed"));
+      toast.error(t("settings.profile.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -163,7 +158,6 @@ function ProfileSettingsPage() {
   async function onChangePassword(values: ChangePasswordInput) {
     setSecuritySaving(true);
     setSecuritySaved(false);
-    setSecurityError(null);
 
     const { error } = await authClient.changePassword({
       currentPassword: values.currentPassword,
@@ -176,7 +170,7 @@ function ProfileSettingsPage() {
     if (error) {
       // BetterAuth reports a wrong current password as 400/401; keep other
       // failures generic so the form never leaks internal details.
-      setSecurityError(
+      toast.error(
         error.status === 400 || error.status === 401
           ? t("settings.security.invalidCurrent")
           : t("settings.security.failed"),
@@ -238,11 +232,6 @@ function ProfileSettingsPage() {
                 {t("settings.profile.avatar.selected", { name: selectedName })}
               </p>
             ) : null}
-            {avatarError ? (
-              <p className="text-destructive text-xs" role="alert">
-                {avatarError}
-              </p>
-            ) : null}
           </div>
         </button>
 
@@ -263,11 +252,6 @@ function ProfileSettingsPage() {
         <h2 className="font-medium text-sm">{t("settings.profile.details")}</h2>
         <FormTextField form={form} label={t("settings.profile.name")} name="name" />
 
-        {saveError ? (
-          <p className="text-destructive text-sm" role="alert">
-            {saveError}
-          </p>
-        ) : null}
         {saved ? (
           <p className="text-muted-foreground text-sm" role="status">
             {t("settings.profile.saved")}
@@ -323,11 +307,6 @@ function ProfileSettingsPage() {
           {t("settings.security.revokeOtherSessions")}
         </label>
 
-        {securityError ? (
-          <p className="text-destructive text-sm" role="alert">
-            {securityError}
-          </p>
-        ) : null}
         {securitySaved ? (
           <p className="text-muted-foreground text-sm" role="status">
             {t("settings.security.saved")}

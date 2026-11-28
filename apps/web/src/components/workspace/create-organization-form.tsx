@@ -1,7 +1,7 @@
 import { type CreateOrganizationInput, createOrganizationSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { FormTextField } from "@/components/form/form-text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import { authClient } from "@/lib/auth-client";
@@ -12,22 +12,20 @@ interface CreateOrganizationFormProps {
 
 export function CreateOrganizationForm({ onCreated }: CreateOrganizationFormProps) {
   const { t } = useTranslation();
-  const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(createOrganizationSchema, {
     defaultValues: { name: "", slug: "" },
   });
 
   async function onSubmit(values: CreateOrganizationInput) {
-    setFormError(null);
-
     const { data, error } = await authClient.organization.create(values);
 
     if (error || !data) {
-      setFormError(error?.message || t("workspace.create.failed"));
+      toast.error(error?.message || t("workspace.create.failed"));
       return;
     }
 
     form.reset();
+    toast.success(t("workspace.create.success"));
     await onCreated();
   }
 
@@ -43,12 +41,6 @@ export function CreateOrganizationForm({ onCreated }: CreateOrganizationFormProp
           label={t("workspace.create.slug")}
           name="slug"
         />
-
-        {formError ? (
-          <p className="text-destructive text-sm" role="alert">
-            {formError}
-          </p>
-        ) : null}
 
         <Button className="w-fit" disabled={form.formState.isSubmitting} type="submit">
           {form.formState.isSubmitting

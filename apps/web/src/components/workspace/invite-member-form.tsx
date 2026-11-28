@@ -2,6 +2,7 @@ import { type InviteMemberInput, inviteMemberSchema } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { FormTextField } from "@/components/form/form-text-field";
 import { useZodForm } from "@/components/form/use-zod-form";
 import { authClient } from "@/lib/auth-client";
@@ -12,7 +13,6 @@ interface InviteMemberFormProps {
 
 export function InviteMemberForm({ organizationId }: InviteMemberFormProps) {
   const { t } = useTranslation();
-  const [formError, setFormError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useZodForm(inviteMemberSchema, { defaultValues: { email: "" } });
 
@@ -21,7 +21,6 @@ export function InviteMemberForm({ organizationId }: InviteMemberFormProps) {
       return;
     }
 
-    setFormError(null);
     setSentTo(null);
 
     const { error } = await authClient.organization.inviteMember({
@@ -31,7 +30,7 @@ export function InviteMemberForm({ organizationId }: InviteMemberFormProps) {
     });
 
     if (error) {
-      setFormError(error.message || t("workspace.invite.failed"));
+      toast.error(error.message || t("workspace.invite.failed"));
       return;
     }
 
@@ -53,11 +52,6 @@ export function InviteMemberForm({ organizationId }: InviteMemberFormProps) {
             type="email"
           />
 
-          {formError ? (
-            <p className="text-destructive text-sm" role="alert">
-              {formError}
-            </p>
-          ) : null}
           {sentTo ? (
             <p className="text-sm text-muted-foreground" role="status">
               {t("workspace.invite.sent", { email: sentTo })}

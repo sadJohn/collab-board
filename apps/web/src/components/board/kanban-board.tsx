@@ -20,6 +20,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { TaskCard } from "@/components/task/task-card";
 import { listMembers } from "@/lib/api/members";
 import { listTasks, moveTask } from "@/lib/api/tasks";
@@ -55,7 +56,6 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [settling, setSettling] = useState(false);
-  const [moveFailed, setMoveFailed] = useState(false);
   const settleTimer = useRef<number | undefined>(undefined);
   const draggedRecently = useRef(false);
 
@@ -110,7 +110,6 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         nextTaskId: variables.plan.nextTaskId,
       }),
     onMutate: async (variables) => {
-      setMoveFailed(false);
       await queryClient.cancelQueries({ queryKey: boardQueryKey });
 
       const snapshot = queryClient.getQueryData<TaskPageDto>(boardQueryKey);
@@ -128,7 +127,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       if (context?.snapshot) {
         queryClient.setQueryData<TaskPageDto>(boardQueryKey, context.snapshot);
       }
-      setMoveFailed(true);
+      toast.error(t("board.moveFailed"));
     },
     onSettled: async () => {
       // The server may rebalance a column, so refetch the authoritative order.
@@ -228,12 +227,6 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       {truncated ? (
         <p className="rounded-md bg-muted px-3 py-2 text-muted-foreground text-xs">
           {t("board.truncated", { count: MAX_PAGE_SIZE })}
-        </p>
-      ) : null}
-
-      {moveFailed ? (
-        <p className="text-destructive text-sm" role="alert">
-          {t("board.moveFailed")}
         </p>
       ) : null}
 

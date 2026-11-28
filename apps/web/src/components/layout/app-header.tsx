@@ -10,7 +10,6 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,22 +32,11 @@ export function AppHeader() {
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const mobileNavOpen = useUiStore((state) => state.mobileNavOpen);
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen);
-  const workspaceSwitchError = useUiStore((state) => state.workspaceSwitchError);
-  const clearWorkspaceSwitchError = useUiStore((state) => state.setWorkspaceSwitchError);
   const clearOptimistic = useUiStore((state) => state.setOptimisticActiveOrganizationId);
 
   const activeOrganizationId = activeOrganization.data?.id ?? "";
   const items = organizations.data ?? [];
   const user = session.data?.user;
-
-  // Auto-dismiss the switch error after a few seconds.
-  useEffect(() => {
-    if (!workspaceSwitchError) {
-      return;
-    }
-    const id = window.setTimeout(() => clearWorkspaceSwitchError(null), 4000);
-    return () => window.clearTimeout(id);
-  }, [workspaceSwitchError, clearWorkspaceSwitchError]);
 
   function handleOrganizationChange(organizationId: string) {
     // Optimistic: the UI switches instantly; the commit runs in the background.
@@ -57,7 +45,6 @@ export function AppHeader() {
 
   async function handleSignOut() {
     clearOptimistic(null);
-    clearWorkspaceSwitchError(null);
     await authClient.signOut();
     queryClient.clear();
     // The layout guard now sees no session and redirects to /login.
@@ -112,12 +99,6 @@ export function AppHeader() {
               </option>
             ))}
           </select>
-
-          {workspaceSwitchError ? (
-            <span className="shrink-0 text-destructive text-xs" role="alert">
-              {workspaceSwitchError}
-            </span>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-2">

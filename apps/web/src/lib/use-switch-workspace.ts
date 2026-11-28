@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useUiStore } from "@/stores/ui-store";
 import { authClient, useSession } from "./auth-client";
 import { queryKeys } from "./query-keys";
@@ -44,7 +45,6 @@ export function useSwitchWorkspace() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const setOptimistic = useUiStore((state) => state.setOptimisticActiveOrganizationId);
-  const setError = useUiStore((state) => state.setWorkspaceSwitchError);
   const refetchSession = session.refetch;
 
   const currentIdRef = useRef<string | null>(null);
@@ -61,7 +61,6 @@ export function useSwitchWorkspace() {
       // Optimistic first: the whole app re-renders against the new workspace.
       latestTarget.current = organizationId;
       setOptimistic(organizationId);
-      setError(null);
 
       try {
         const { error } = await authClient.organization.setActive({ organizationId });
@@ -90,12 +89,12 @@ export function useSwitchWorkspace() {
         const message = err instanceof Error ? err.message : "";
         if (latestTarget.current === organizationId) {
           setOptimistic(null);
-          setError(message || t("workspace.switchFailed"));
+          toast.error(message || t("workspace.switchFailed"));
         }
         return { ok: false, error: message || t("workspace.switchFailed") };
       }
     },
-    [queryClient, refetchSession, router, setOptimistic, setError, t],
+    [queryClient, refetchSession, router, setOptimistic, t],
   );
 
   return { switchTo };

@@ -3,6 +3,7 @@ import { Button, Textarea } from "@repo/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { UserAvatar } from "@/components/user-avatar";
 import { createComment, deleteComment, listComments } from "@/lib/api/comments";
 import { listMembers } from "@/lib/api/members";
@@ -21,7 +22,6 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   const { data, isSwitching } = useActiveWorkspace();
   const organizationId = data?.id ?? "";
   const [content, setContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const commentsQuery = useQuery({
     queryKey: queryKeys.tasks.comments(taskId),
@@ -57,19 +57,17 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
     mutationFn: (value: string) => createComment({ taskId, content: value }),
     onSuccess: async () => {
       setContent("");
-      setError(null);
       await refreshComments();
     },
-    onError: () => setError(t("task.commentFailed")),
+    onError: () => toast.error(t("task.commentFailed")),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
     onSuccess: async () => {
-      setError(null);
       await refreshComments();
     },
-    onError: () => setError(t("task.commentDeleteFailed")),
+    onError: () => toast.error(t("task.commentDeleteFailed")),
   });
 
   const comments = commentsQuery.data ?? [];
@@ -149,12 +147,6 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
           </Button>
         </div>
       </form>
-
-      {error ? (
-        <p className="text-destructive text-sm" role="alert">
-          {error}
-        </p>
-      ) : null}
     </section>
   );
 }

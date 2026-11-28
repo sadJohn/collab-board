@@ -144,7 +144,8 @@
       "submitting": "提交中…",
       "failed": "重置失败，请重新申请重置链接。",
       "missingToken": "重置链接无效或已过期。",
-      "requestNew": "重新申请重置链接"
+      "requestNew": "重新申请重置链接",
+      "success": "密码已重置，请使用新密码登录。"
     }
   },
   "nav": {
@@ -250,7 +251,8 @@
       "submit": "创建项目",
       "submitting": "创建中…",
       "keyExists": "该项目标识已存在。",
-      "failed": "创建项目失败，请重试。"
+      "failed": "创建项目失败，请重试。",
+      "success": "项目已创建。"
     }
   },
   "workspace": {
@@ -273,7 +275,8 @@
       "slugHint": "小写字母、数字和连字符，例如 acme-team",
       "submit": "创建",
       "submitting": "创建中…",
-      "failed": "创建失败，请重试。"
+      "failed": "创建失败，请重试。",
+      "success": "工作区已创建。"
     },
     "invite": {
       "title": "邀请成员",

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { authClient } from "@/lib/auth-client";
 import { queryKeys } from "@/lib/query-keys";
@@ -13,6 +14,10 @@ vi.mock("@/lib/auth-client", () => ({
     signIn: { email: vi.fn() },
     signUp: { email: vi.fn() },
   },
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
 }));
 
 type SignInResult = Awaited<ReturnType<typeof authClient.signIn.email>>;
@@ -46,6 +51,8 @@ beforeEach(() => {
   queryClient = new QueryClient();
   signInEmail.mockReset();
   signUpEmail.mockReset();
+  vi.mocked(toast.error).mockReset();
+  vi.mocked(toast.success).mockReset();
 });
 
 describe("LoginForm", () => {
@@ -91,7 +98,7 @@ describe("LoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert").textContent).toBe("Invalid email or password");
+      expect(toast.error).toHaveBeenCalledWith("Invalid email or password");
     });
     expect(onSuccess).not.toHaveBeenCalled();
   });
