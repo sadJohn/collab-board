@@ -30,6 +30,9 @@ interface UiState {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
+  /** Mobile nav drawer; transient — closed on every reload. */
+  mobileNavOpen: boolean;
+  setMobileNavOpen: (open: boolean) => void;
   /**
    * Optimistically selected workspace id while a switch is in flight. When set,
    * `useActiveWorkspace` prefers this over the session so the UI renders the new
@@ -95,6 +98,10 @@ export const useUiStore = create<UiState>()(
           }
           return { commandPaletteOpen: next };
         });
+      },
+      mobileNavOpen: false,
+      setMobileNavOpen: (mobileNavOpen) => {
+        set({ mobileNavOpen });
       },
       optimisticActiveOrganizationId: null,
       setOptimisticActiveOrganizationId: (optimisticActiveOrganizationId) => {

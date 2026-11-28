@@ -1,8 +1,9 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { EmailVerificationBanner } from "../components/auth/email-verification-banner";
 import { CommandPalette } from "../components/command-palette";
 import { AppHeader } from "../components/layout/app-header";
+import { MobileNav } from "../components/layout/mobile-nav";
+import { NavLinks } from "../components/layout/nav-links";
 import { WorkspaceGate } from "../components/workspace/workspace-gate";
 import { useGlobalShortcuts } from "../hooks/use-global-shortcuts";
 import { useNotificationRealtime } from "../hooks/use-notification-realtime";
@@ -16,7 +17,6 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { t } = useTranslation();
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
 
   useGlobalShortcuts();
@@ -24,52 +24,19 @@ function AppLayout() {
   usePageViewTracking();
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <AppHeader />
 
-      <div className="mx-auto flex w-full max-w-6xl gap-8 px-6 py-8">
-        <aside className={sidebarCollapsed ? "hidden" : "hidden w-44 shrink-0 md:block"}>
-          <nav className="flex flex-col gap-1 text-sm">
-            <Link
-              className="rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-              activeProps={{
-                className: "rounded-md bg-accent px-3 py-2 font-medium text-foreground",
-              }}
-              to="/home"
-            >
-              {t("nav.home")}
-            </Link>
-            <Link
-              className="rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-              activeProps={{
-                className: "rounded-md bg-accent px-3 py-2 font-medium text-foreground",
-              }}
-              to="/projects"
-            >
-              {t("nav.projects")}
-            </Link>
-            <Link
-              className="rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-              activeProps={{
-                className: "rounded-md bg-accent px-3 py-2 font-medium text-foreground",
-              }}
-              to="/workspace"
-            >
-              {t("nav.workspace")}
-            </Link>
-            <Link
-              className="rounded-md px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-              activeProps={{
-                className: "rounded-md bg-accent px-3 py-2 font-medium text-foreground",
-              }}
-              to="/analytics"
-            >
-              {t("nav.analytics")}
-            </Link>
-          </nav>
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-8 overflow-hidden px-6">
+        <aside
+          className={
+            sidebarCollapsed ? "hidden" : "hidden w-44 shrink-0 overflow-y-auto py-8 md:block"
+          }
+        >
+          <NavLinks />
         </aside>
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto py-8 overscroll-contain">
           <EmailVerificationBanner />
           {/* Pages key their queries on the optimistic workspace id, so a switch
               instantly shows the target workspace's cached data (cache-first);
@@ -81,6 +48,7 @@ function AppLayout() {
       </div>
 
       <CommandPalette />
+      <MobileNav />
     </div>
   );
 }

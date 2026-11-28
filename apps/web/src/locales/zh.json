@@ -152,7 +152,9 @@
     "projects": "项目",
     "workspace": "工作区",
     "analytics": "数据洞察",
-    "toggleSidebar": "展开或收起侧边栏"
+    "toggleSidebar": "展开或收起侧边栏",
+    "menu": "菜单",
+    "close": "关闭菜单"
   },
   "user": {
     "signOut": "退出登录",

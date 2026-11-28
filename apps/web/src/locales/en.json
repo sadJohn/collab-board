@@ -152,7 +152,9 @@
     "projects": "Projects",
     "workspace": "Workspace",
     "analytics": "Analytics",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "menu": "Menu",
+    "close": "Close menu"
   },
   "user": {
     "signOut": "Sign out",

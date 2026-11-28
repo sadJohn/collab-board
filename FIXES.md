@@ -243,3 +243,121 @@
   - `apps/web/src/lib/use-active-workspace.ts`、`apps/web/src/lib/use-switch-workspace.ts`、`apps/web/src/routes/_app.tsx`
   - `apps/web/src/components/home-page.tsx`、`apps/web/src/components/analytics/analytics-page.tsx`、`apps/web/src/components/board/kanban-board.tsx`、`apps/web/src/components/task/task-comments.tsx`、`apps/web/src/components/task/task-detail-form.tsx`
   - `apps/web/src/routes/_app/projects/index.tsx`、`apps/web/src/routes/_app/projects/$projectId/list.tsx`、`apps/web/src/routes/_app/projects/$projectId/route.tsx`
+
+---
+
+### 优化（体验）— 顶栏/侧边栏固定、仅内容区滚动；窄屏补回可切换的导航抽屉
+
+- **类型**：优化（体验）
+- **状态**：已完成（落地，typecheck / 95 项单测 / biome 全绿）
+- **问题/现象**：
+  1. 滚动页面时，顶部 banner（`AppHeader`）和左侧导航菜单会一起滚走，只有滚回顶部才能看到。
+  2. 窗口窄到 `md`（768px）以下时，左侧菜单整个消失，而顶栏里打开/收起菜单的按钮只在 `md:` 以上显示，导致窄屏**没有任何入口切换导航**。
+- **根因**：
+  - 布局根容器用 `min-h-dvh` + 文档流自然滚动，`header`/`aside` 都参与页面级滚动，没有任何一层被「钉」在视口里。
+  - 侧边栏 `<aside>` 用 `hidden md:block` 在窄屏直接 `display:none`，且顶栏的折叠按钮带 `hidden md:inline-flex`——窄屏既没有常驻菜单，也没有触发入口。
+- **方案**：
+  1. 把 shell 改成「固定视口高度的 flex 列 + 仅内容区滚动」：根容器 `flex h-dvh flex-col overflow-hidden`，body 行 `flex-1 min-h-0 overflow-hidden`，`<header>` 加 `shrink-0`，`<aside>` 与 `<main>` 各自 `overflow-y-auto`。这样页面不再整体滚动，只有 `<main>` 出滚动条；顶栏和左侧菜单固定在视口内。`<main>` 加 `overscroll-contain` 防止滚动串到父层。
+  2. 新增移动端导航抽屉（`mobile-nav.tsx`）：用原生 `<dialog>` + `showModal()`，浏览器免费提供焦点陷阱、Escape 关闭、遮罩层 inert、关闭后焦点回置。抽屉放与桌面侧栏相同的 4 个导航链接，点链接 / 点遮罩 / 按 Escape 都会关闭。
+  3. 顶栏新增一个 `md:hidden` 的菜单按钮（`aria-controls` / `aria-expanded` 指向抽屉），窄屏可见；桌面端原有的折叠按钮保持不变（`hidden md:inline-flex`）。
+  4. 抽屉开关状态放进 `ui-store` 的 `mobileNavOpen`（transient，不进 `partialize`，刷新即重置为关闭）。
+  5. locale 新增 `nav.menu` / `nav.close`，`en.json` 与 `zh.json` 两语言键对齐（通过 `resources.test.ts`）。
+- **改动清单**：
+  1. `apps/web/src/routes/_app.tsx`：根容器改固定视口 flex 列；body 行 `flex-1 min-h-0 overflow-hidden`；`aside`/`main` 各自 `overflow-y-auto`（`main` 加 `overscroll-contain`、把原 `py-8` 移到两列上）；渲染 `<MobileNav />`。
+  2. `apps/web/src/components/layout/app-header.tsx`：`<header>` 加 `shrink-0`；新增 `md:hidden` 菜单按钮（`Menu` 图标，`aria-controls="mobile-nav"`、`aria-expanded`）；桌面折叠按钮维持原样。
+  3. `apps/web/src/components/layout/mobile-nav.tsx`（新增）：原生 `<dialog>` 抽屉，`useEffect` 同步 `showModal()`/`close()`，遮罩点击与 `cancel`（Escape）回写 store。
+  4. `apps/web/src/stores/ui-store.ts`：新增 transient 状态 `mobileNavOpen` / `setMobileNavOpen`（不持久化）。
+  5. `apps/web/src/locales/en.json` / `zh.json`：新增 `nav.menu`、`nav.close`，两文件键集对齐。
+- **验证结果**：
+  - `apps/web`：`pnpm typecheck` 通过；`pnpm test` 95/95 通过（含 locale 键对齐测试 `resources.test.ts`）；`biome check` 无报错。
+  - 行为（桌面）：内容再长也只有右侧 `<main>` 滚动，顶栏与左侧菜单始终钉在视口内；侧栏折叠行为不变。
+  - 行为（窄屏 < 768px）：左侧菜单隐藏，顶栏出现菜单按钮；点击弹出左侧抽屉，点导航链接 / 遮罩 / Escape 均关闭并正确导航；抽屉自带焦点陷阱与焦点回置。
+- **相关文件**：
+  - `apps/web/src/routes/_app.tsx`
+  - `apps/web/src/components/layout/app-header.tsx`、`apps/web/src/components/layout/mobile-nav.tsx`
+  - `apps/web/src/stores/ui-store.ts`
+  - `apps/web/src/locales/en.json`、`apps/web/src/locales/zh.json`
+
+---
+
+### 优化（体验）— 移动端抽屉：补回进出场动画 + 修复高度不到底
+
+- **类型**：优化（体验）
+- **状态**：已完成（落地，typecheck / 95 项单测 / biome 无 warning；浏览器实测高度到底、动画中间帧已截到）
+- **问题/现象**：
+  1. 移动端导航抽屉打开/关闭是瞬切，没有动画。
+  2. 抽屉面板底部与视口底边之间有一截空白，高度没到底。
+- **根因**：
+  - 动画：原生 `<dialog>` 进出顶层（top layer）时在 `display: none` 与可见态之间切换，普通 `transition` 不生效，之前没做任何动画处理。
+  - 高度：Chromium UA 样式表对 `dialog:modal` 默认施加 `max-height: calc((100% - 6px) - 2em)`（约比 100% 小 38px）。之前只设了 `h-dvh`，没盖掉这个 UA `max-height` 上限，所以面板始终差一截到底。
+- **方案**：
+  1. 把抽屉的可见面板从 dialog 本体拆到内层 `.drawer-sheet`，dialog 本体重置 UA 默认样式：`max-height/width: none`、`inset: 0`、`margin/padding/border: 0`、`background: transparent`，让遮罩铺满视口、面板样式由内层掌控。
+  2. `.drawer-sheet` 高度设为 `100dvh`（随动态视口填充，到底），默认 `translateX(-100%)`（屏幕左侧外）。
+  3. 按 `animate-to-from-top-layer` 指南实现动画：`@starting-style` 定义入场起点，`transition-behavior: allow-discrete` + 把 `display`/`overlay` 列入 `transition-property`，使 dialog 进出顶层时能滑动 + 遮罩淡入淡出；`prefers-reduced-motion` 下缩短到 0.01s。
+  4. 退出动画的跨浏览器回退：Chrome/Edge 原生支持顶层退出过渡，直接 `close()` 即可；Firefox/Safari 不支持，于是设置 `[data-closing]` 让开态规则失配、元素过渡回闭态，等 `getAnimations()` 结束再 `close()`（带 400ms 超时兜底）。打开时若处于关闭动画中途，取消待定关闭。
+  5. Escape（`cancel`）改为 `preventDefault` 后走同一套带动画的关闭，不再瞬关。
+- **改动清单**：
+  1. `apps/web/src/index.css`：新增 `#mobile-nav` 作用域样式块（UA reset + sheet 布局 + `@starting-style` 进出动画 + 遮罩过渡 + reduced-motion）。
+  2. `apps/web/src/components/layout/mobile-nav.tsx`：dialog 内包 `.drawer-sheet`；新增 `supportsTopLayerExit()` 探测（含真实元素 probe，规避 Firefox 假支持）与 `closeAnimated()` 关闭流程；`onCancel` 改为带动画关闭；store 仍为唯一真相源，`useEffect` 编排 show/close。
+- **验证结果**：
+  - `apps/web`：`pnpm typecheck` 通过；`pnpm test` 95/95 通过；`biome check` 无 warning。
+  - 浏览器实测（免登录独立测试页，390×844）：面板底边 computed `548px` === 视口高 `548px`，底部无缺口；`?slow` 拉长到 2s 后截到中间帧 `translateX(-125.6px)`（全程 256px）、遮罩 `rgba(0,0,0,0.255)`（满值 0.5），确认是滑动+淡入而非瞬切。测试页为临时验证产物，已删除，不进入构建。
+- **相关文件**：
+  - `apps/web/src/index.css`
+  - `apps/web/src/components/layout/mobile-nav.tsx`
+
+---
+
+### 优化（体验）/ 优化（可维护性）— 移动端抽屉改用 motion：删掉手写顶层动画探测，修复出场动画不播放
+
+- **类型**：优化（体验）/ 优化（可维护性）
+- **状态**：已完成（落地，typecheck / 95 项单测 / biome 无 warning；浏览器实测进、出场中间帧均截到）
+- **问题/现象**：
+  1. 抽屉**出场动画不播放**：打开是滑入，关闭却是瞬切消失，进出不对称。
+  2. 项目已安装 `motion`（`motion/react`，首页与可排序任务卡已在用），但抽屉仍靠手写 CSS + `@starting-style` + `transition-behavior: allow-discrete` + `getAnimations()` 回退探测实现动画，代码冗长且跨浏览器脆弱。
+- **根因**：
+  上一版的出场依赖「CSS 顶层退出过渡 + Firefox/Safari 的 `[data-closing]`/`getAnimations()` 回退」。该路径对浏览器顶层退出原生支持或回退时序敏感，实际不稳定：`close()` 把 dialog 移出顶层后元素瞬间 `display:none`，退出过渡没机会播放，表现为瞬关。
+- **方案**：
+  保留原生 `<dialog>` + `showModal()`（焦点陷阱 / Escape / inert 遮罩 / 焦点回置全部不变），但**进出场动画交给 motion 声明式驱动**，不再手写顶层动画：
+  1. 面板与遮罩各是一个 `<motion.div>`，共享 `variants = { open, closed }`，`initial="closed"`、`animate={open ? "open" : "closed"}`。
+  2. **入场**：`useEffect` 监听 `open` → `dialog.showModal()`，motion 把 closed 变体播到 open（面板 `x: -100% → 0%`，遮罩 `opacity: 0 → 1`）。
+  3. **出场（修复点）**：`dismiss()` 只把 `open` 置 false；motion 播放 open→closed；面板的 `onAnimationComplete("closed")` 里才调用 `dialog.close()`。关闭时机由 JS 动画完成回调控制，**每个浏览器都会完整播放出场**，不再依赖顶层退出原生支持或回退探测。
+  4. 布局从 CSS 移到 Tailwind 类：`max-h-none max-w-none` 盖掉 UA `dialog:modal` 的 `max-height` 上限（面板到底），`h-dvh` 动态视口高度；`index.css` 里整个 `#mobile-nav` 块删除。
+  5. 轻量关闭：`<dialog onClick>` 判定 `!sheetRef.current?.contains(event.target)` 时关闭（遮罩现为子 div，不能再靠 `event.target === dialog` 判定）；`useReducedMotion()` 下过渡 `duration: 0`，不播动画但仍走同一关闭回调。
+  6. 删掉 `supportsTopLayerExit()` 探测、`data-closing` 属性、`getAnimations()` 等待、`closingRef`、`useCallback` 等样板。
+- **改动清单**：
+  1. `apps/web/src/components/layout/mobile-nav.tsx`：用 `motion/react` 的 `motion` + `useReducedMotion` 重写，variants 驱动进出场，`onAnimationComplete` 定时 `close()`；布局改 Tailwind 类；删除手写动画探测代码。
+  2. `apps/web/src/index.css`：删除整个 `#mobile-nav` 作用域样式块（UA reset / sheet 布局 / `@starting-style` / 遮罩过渡 / reduced-motion 共约 75 行），样式与动画全部内联到组件。
+- **验证结果**：
+  - `apps/web`：`pnpm typecheck` 通过；`pnpm test` 95/95 通过（`resources.test.ts` 语言键对齐仍绿，本次未新增 key，复用既有 `nav.menu` / `nav.close`）；`biome check` 无 warning。
+  - 浏览器实测（免登录独立测试页，镜像同一套组件逻辑，视口等价 390×844）：
+    - 面板底边 `548px` === 视口高 `548px`，无缺口；完全打开时 transform 为 identity（x=0）。
+    - `?slow` 把过渡拉到 2s：入场中途截到 `translateX(-59.16px)`（在 -256~0 之间）→ 入场滑动；**出场中途**（点遮罩后 700ms）截到 `translateX(-198.79px)` 且 `dialog.open === true` → 出场确实在播放而非瞬关，bug 修复。
+  - 临时测试页 `apps/web/public/drawer-motion-test.html` 已删除，不进入构建。
+- **相关文件**：
+  - `apps/web/src/components/layout/mobile-nav.tsx`
+  - `apps/web/src/index.css`
+
+---
+
+### 优化（可维护性）— 桌面侧栏与移动抽屉复用同一套导航组件
+
+- **类型**：优化（可维护性）
+- **状态**：已完成（落地，typecheck / 95 项单测 / biome 无 warning）
+- **问题/现象**：
+  主导航在两处重复实现：桌面侧栏（`routes/_app.tsx`）把 4 个 `<Link>` 的 `to` / `className` / `activeProps` / `t()` 硬编码写了 4 遍；移动抽屉（`components/layout/mobile-nav.tsx`）把同样 4 项抽成了 `NAV_ITEMS` 数组，但只在抽屉内部用，没回灌到桌面端。加/改导航项要改两处，样式与 locale key 容易漂移。
+- **根因**：
+  先写的桌面端是硬编码，后加抽屉时才想到抽数组，但没把公共部分提升出去，导致数据与样式各存一份。
+- **方案**：
+  新增 `components/layout/nav-links.tsx`，导出单一事实源 `NAV_ITEMS` 与 `NavLinks` 组件（渲染 `<nav>` + 4 个 `<Link>`，样式集中定义）。桌面端 `<NavLinks />`，移动端 `<NavLinks onNavigate={dismiss} />`——唯一行为差异（点链接后关抽屉）通过可选 `onNavigate` prop 传入，桌面端不传。
+- **改动清单**：
+  1. 新增 `apps/web/src/components/layout/nav-links.tsx`：`NAV_ITEMS` 常量 + `NavLinks` 组件（可选 `onNavigate?: () => void`）。
+  2. `apps/web/src/routes/_app.tsx`：侧栏 `<nav>` 里 4 个硬编码 `<Link>` 替换为 `<NavLinks />`；清理不再使用的 `Link` / `useTranslation` 导入与 `t`。
+  3. `apps/web/src/components/layout/mobile-nav.tsx`：删除本地 `NAV_ITEMS` 与内联 `<nav>`，改用 `<NavLinks onNavigate={dismiss} />`；清理 `Link` 导入。
+- **验证结果**：
+  - `apps/web`：`pnpm typecheck` 通过；`pnpm test` 95/95 通过；`biome check` 无 warning。
+  - 行为不变：桌面侧栏 4 项导航与选中高亮、移动抽屉点链接后关闭并导航，均与改动前一致（`onNavigate` 透传给 `<Link onClick>`，少参数函数兼容 `MouseEventHandler` 签名）。
+- **相关文件**：
+  - `apps/web/src/components/layout/nav-links.tsx`（新增）
+  - `apps/web/src/routes/_app.tsx`
+  - `apps/web/src/components/layout/mobile-nav.tsx`

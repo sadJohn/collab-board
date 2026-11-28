@@ -9,7 +9,7 @@ import {
 } from "@repo/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -32,6 +32,8 @@ export function AppHeader() {
   const { switchTo } = useSwitchWorkspace();
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const mobileNavOpen = useUiStore((state) => state.mobileNavOpen);
+  const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen);
   const workspaceSwitchError = useUiStore((state) => state.workspaceSwitchError);
   const clearWorkspaceSwitchError = useUiStore((state) => state.setWorkspaceSwitchError);
   const clearOptimistic = useUiStore((state) => state.setOptimisticActiveOrganizationId);
@@ -64,9 +66,22 @@ export function AppHeader() {
   }
 
   return (
-    <header className="border-b">
+    <header className="shrink-0 border-b">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-6">
         <div className="flex min-w-0 items-center gap-4">
+          <Button
+            aria-controls="mobile-nav"
+            aria-expanded={mobileNavOpen}
+            aria-label={t("nav.menu")}
+            className="inline-flex md:hidden"
+            onClick={() => setMobileNavOpen(true)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Menu />
+          </Button>
+
           <Button
             aria-label={t("nav.toggleSidebar")}
             aria-pressed={sidebarCollapsed}
