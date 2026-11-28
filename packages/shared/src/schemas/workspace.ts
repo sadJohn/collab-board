@@ -19,6 +19,24 @@ export const createOrganizationSchema = z.object({
 });
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 
+export const updateOrganizationSchema = z
+  .object({
+    name: organizationNameSchema.optional(),
+    slug: organizationSlugSchema.optional(),
+  })
+  .strict()
+  .refine((value) => value.name !== undefined || value.slug !== undefined, {
+    message: "Provide name or slug",
+  });
+export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+
+export const deleteOrganizationConfirmationSchema = z.object({
+  confirmationSlug: organizationSlugSchema,
+});
+export type DeleteOrganizationConfirmationInput = z.infer<
+  typeof deleteOrganizationConfirmationSchema
+>;
+
 export const inviteMemberSchema = z.object({
   email: z.email("Enter a valid email address"),
 });

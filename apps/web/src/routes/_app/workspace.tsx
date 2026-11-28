@@ -3,12 +3,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
-import { CreateOrganizationForm } from "@/components/workspace/create-organization-form";
+import { CreateOrganizationDialog } from "@/components/workspace/create-organization-dialog";
 import { InviteMemberForm } from "@/components/workspace/invite-member-form";
 import { PendingInvitations } from "@/components/workspace/pending-invitations";
-import { useListOrganizations } from "@/lib/auth-client";
+import {
+  WorkspaceDangerZone,
+  WorkspaceEditButton,
+} from "@/components/workspace/workspace-management";
+import { authClient, useListOrganizations, useSession } from "@/lib/auth-client";
 import { useActiveWorkspace } from "@/lib/use-active-workspace";
 import { useSwitchWorkspace } from "@/lib/use-switch-workspace";
+import { useUiStore } from "@/stores/ui-store";
 
 export const Route = createFileRoute("/_app/workspace")({
   component: WorkspacePage,
@@ -19,8 +24,12 @@ function WorkspacePage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const organizations = useListOrganizations();
+  const session = useSession();
   const activeOrganization = useActiveWorkspace();
   const { switchTo } = useSwitchWorkspace();
+  const setOptimisticActiveOrganizationId = useUiStore(
+    (state) => state.setOptimisticActiveOrganizationId,
+  );
 
   const activeOrganizationId = activeOrganization.data?.id;
   const items = organizations.data ?? [];
@@ -33,6 +42,24 @@ function WorkspacePage() {
     await router.invalidate();
   }
 
+  async function refreshUpdatedOrganization() {
+    await Promise.all([organizations.refetch(), router.invalidate()]);
+  }
+
+  async function reconcileDeletedOrganization(organizationId: string) {
+    setOptimisticActiveOrganizationId(null);
+    queryClient.clear();
+    const [listResult] = await Promise.all([
+      authClient.organization.list(),
+      organizations.refetch(),
+      session.refetch(),
+      router.invalidate(),
+    ]);
+
+    if (listResult.error || !listResult.data) return false;
+    return !listResult.data.some((organization) => organization.id === organizationId);
+  }
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -41,7 +68,10 @@ function WorkspacePage() {
       </header>
 
       <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
-        <h2 className="font-medium text-sm">{t("workspace.list")}</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-medium text-sm">{t("workspace.list")}</h2>
+          <CreateOrganizationDialog onCreated={refreshSession} />
+        </div>
 
         {organizations.isPending ? (
           <p className="text-muted-foreground text-sm">{t("workspace.loading")}</p>
@@ -65,7 +95,13 @@ function WorkspacePage() {
               </span>
 
               {organization.id === activeOrganizationId ? (
-                <span className="shrink-0 text-primary text-xs">{t("workspace.active")}</span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className="text-primary text-xs">{t("workspace.active")}</span>
+                  <WorkspaceEditButton
+                    organization={activeOrganization.data}
+                    onUpdated={refreshUpdatedOrganization}
+                  />
+                </div>
               ) : (
                 <Button onClick={() => void switchTo(organization.id)} size="sm" variant="outline">
                   {t("workspace.switch")}
@@ -76,9 +112,12 @@ function WorkspacePage() {
         </ul>
       </section>
 
-      <CreateOrganizationForm onCreated={refreshSession} />
       <InviteMemberForm organizationId={activeOrganizationId} />
       <PendingInvitations organizationId={activeOrganizationId} />
+      <WorkspaceDangerZone
+        organization={activeOrganization.data}
+        onReconcile={reconcileDeletedOrganization}
+      />
     </div>
   );
 }

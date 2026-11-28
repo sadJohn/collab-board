@@ -5,6 +5,7 @@ import { organization } from "better-auth/plugins";
 
 import { mailQueueProducer } from "../mail/mail-queue.producer";
 import { createWorkspaceDatabaseHooks } from "./workspace-database-hooks";
+import { createWorkspaceOrganizationHooks } from "./workspace-organization-hooks";
 
 /** Base URL of the web app, used to build the invitation landing link. */
 function frontendUrl(): string {
@@ -72,6 +73,7 @@ export const auth = betterAuth({
   trustedOrigins: (process.env.CORS_ORIGIN ?? "http://localhost:5173").split(","),
   plugins: [
     organization({
+      organizationHooks: createWorkspaceOrganizationHooks(prisma),
       // With Redis configured this enqueues a BullMQ job; otherwise the
       // producer falls back to sending (or logging) the invitation inline.
       sendInvitationEmail: async (data) => {

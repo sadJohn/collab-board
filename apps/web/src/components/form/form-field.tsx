@@ -29,7 +29,11 @@ export function FormField({ id, label, error, description, className, children }
           {error}
         </p>
       ) : (
-        description && <p className="text-muted-foreground text-xs">{description}</p>
+        description && (
+          <p className="text-muted-foreground text-xs" id={`${id}-description`}>
+            {description}
+          </p>
+        )
       )}
     </div>
   );

@@ -540,6 +540,62 @@ Agent 必须在保留 BetterAuth 所需基础表（`User`, `Session`, `Account`,
       - **验收**：四条命令全绿且零 Biome 报错。
   - **阶段十四完成标准**：主题支持浅色 / 深色 / 跟随系统三态，切换即时生效并持久化；首屏无闪烁，未登录页面同样可切换；看板、弹层、命令面板、通知与图表在深色下配色一致且对比度达标；新增文案中英双语对齐；全部测试、类型检查、规范与构建命令通过。
 
+- **第十五阶段（Phase 15）：工作区管理闭环（编辑、删除与角色权限控制）**
+  - 在现有 `/workspace` 页面增加当前激活工作区的编辑与删除能力，复用 BetterAuth Organization 原生接口和服务端权限，不另建一套 NestJS 工作区 CRUD。
+  - **前置技术约定**
+    - **权限矩阵**：`owner` 可编辑、可删除；`admin` 仅可编辑；`member` 两者均不可。BetterAuth 默认 `organization: ["update"]` / `organization: ["delete"]` 权限是服务端唯一授权依据，前端隐藏入口只用于体验优化，直接构造请求仍必须返回 `403`。角色字段兼容 BetterAuth 的逗号分隔多角色格式，任一角色满足权限即可。
+    - **管理范围**：本阶段仅编辑、删除当前激活工作区；不扩展为非激活工作区管理，不新增软删除、恢复、所有权转移或跨端实时删除广播。
+    - **编辑字段与唯一性**：仅允许修改 `name` / `slug`，禁止通过更新接口写入 `logo`、`metadata` 等未开放字段。`slug` 继续满足 2～48 位小写字母、数字、单连字符格式，并在全系统工作区范围唯一；允许保持当前 `slug` 不变，占用其他工作区的 `slug` 必须失败。`name` 不要求唯一。
+    - **不可恢复硬删除**：不新增 `deletedAt`。删除操作必须在 Dialog 中明确说明将删除全部项目、任务、评论、成员和邀请，并要求输入当前工作区完整 `slug`；不匹配时禁止提交且不得发出请求。确认 `slug` 只是前端防误操作措施，不能替代服务端 owner 鉴权。
+    - **删除一致性**：复用 Prisma 现有 `onDelete: Cascade` 清理 `Member`、`Invitation`、`Project`、`Task`、`Comment`；对没有外键级联的 `Notification.payload.organizationId` 与 `AnalyticsEvent.organizationId` 必须按工作区 ID 显式删除，严禁影响其他工作区数据。
+    - **激活工作区回退**：删除前快照全部受影响成员；删除后，为每位成员按 `Member.createdAt ASC`、`organizationId ASC` 选取最早加入的剩余工作区，更新所有仍指向已删除工作区的 `Session.activeOrganizationId`。BetterAuth 会先将删除者的当前 Session 置为 `null`，因此还必须按请求 `ctx` 中的 Session token 显式写入回退 ID，不能遗漏发起删除的当前会话。仅当 `User.lastActiveOrganizationId` 等于已删除 ID 时才回写；无剩余工作区时两者均设为 `null`，前端进入创建工作区流程。
+    - **异常收敛**：BetterAuth 原生删除先完成，补偿清理由 `afterDeleteOrganization` 执行；补偿异常必须捕获并记录明确日志，不得继续抛出而把已完成的删除误报为失败。无论删除响应成功或失败，前端都重新获取 Session 与工作区列表以对账；若目标工作区已消失则按删除完成收敛，否则才保留失败状态，现有登录恢复与 `WorkspaceGate` 作为最终兜底。
+    - **多语言对齐**：编辑表单、权限说明、危险操作区、确认 Dialog、成功/失败提示同步补齐 `zh.json` / `en.json`。
+  - **子任务拆解（15.1 – 15.7）：严格按序执行，每个任务完成并自检通过后再进入下一个**
+    - **15A 共享契约**
+      - **15.1 更新与删除确认 Schema（`packages/shared`）**
+        - 在 `packages/shared/src/schemas/workspace.ts` 新增 `updateOrganizationSchema` 与 `UpdateOrganizationInput`：复用现有 name/slug 校验器，两个字段均可选但至少提供一个，使用 `.strict()` 拒绝未开放字段。
+        - 新增 `deleteOrganizationConfirmationSchema`：字段为 `confirmationSlug`，复用 `organizationSlugSchema`；与当前工作区 `slug` 的精确相等校验放在删除 Dialog 中。
+        - 先在 `packages/shared/tests/workspace.test.ts` 补失败测试：仅名称、仅标识均可更新；空对象、非法 slug、额外 `logo` / `metadata` 字段被拒绝；确认标识复用同一格式规则。
+        - **验收**：`pnpm --filter @repo/shared test` 与 `typecheck` 通过，Schema 可由现有 `schemas/index.ts` 正常导出。
+    - **15B 后端权限与数据一致性**
+      - **15.2 BetterAuth 更新校验与原生权限接入（`apps/server`）**
+        - 新增 `apps/server/src/auth/workspace-organization-hooks.ts`，导出 `createWorkspaceOrganizationHooks(prisma)`；在 `auth.ts` 的 `organization({ organizationHooks })` 中接入。
+        - `beforeUpdateOrganization` 使用 `updateOrganizationSchema.safeParse` 校验并返回清洗后的 `data`；非法字段、空更新和格式错误在进入数据库前以 `400` 拒绝。更新和删除不自定义放宽角色规则，继续使用 BetterAuth 默认 owner/admin/update、owner/delete 权限及成员关系检查。
+        - 新增 `workspace-organization-hooks.spec.ts`，先写失败测试再实现：合法部分更新被规范化，空更新、非法 slug 和未开放字段不会进入 adapter；成员越权由真实 BetterAuth 请求在 15.6 联调验收，不能用前端隐藏按钮代替。
+        - **验收**：`pnpm --filter @repo/server test` 通过；其他工作区占用相同 slug 的冲突仍由 BetterAuth 与数据库 `@unique` 双重拒绝，当前工作区 slug 不变可保存。
+      - **15.3 删除快照、级联清理与成员回退（`apps/server`）**
+        - `beforeDeleteOrganization` 查询并暂存该工作区全部 `member.userId`，使用以请求 `ctx` 为键的 `WeakMap` 传递给同次 `afterDeleteOrganization`，避免不同删除请求串数据。
+        - `afterDeleteOrganization` 在 Prisma 事务中：按 `payload: { path: ["organizationId"], equals: organizationId }` 删除业务通知，按 `organizationId` 删除埋点事件；逐成员查询最早加入的剩余工作区，更新指向已删除 ID 的 Session，并按前置约定条件回写 `lastActiveOrganizationId`。对发起删除的当前 Session 必须额外按 token 更新，因为 BetterAuth 在调用该钩子前已将其 active ID 置为 `null`。不得使用 Redis `SCAN` 或通配 `DEL`，现有工作区缓存保持隔离并自然过期。
+        - 在 `workspace-organization-hooks.spec.ts` 覆盖：多成员回退顺序一致；删除者当前 Session 已被原生逻辑置空时仍按 token 写入回退 ID；删除非记忆工作区时不错误覆盖 `lastActiveOrganizationId`；无剩余工作区写入 `null`；通知和埋点只清理目标工作区；两个并发请求的删除快照不串用。
+        - **验收**：原生删除完成后，数据库不存在已删除工作区的成员、邀请、项目、任务、评论、业务通知和埋点残留；所有受影响 Session 不再指向已删除 ID。
+    - **15C 前端角色识别与编辑**
+      - **15.4 当前角色解析与编辑表单（`apps/web`）**
+        - 新增 `lib/workspace-permissions.ts`，集中实现多角色解析、`canUpdateWorkspace(role)` 与 `canDeleteWorkspace(role)`，补纯函数单测；角色加载中、加载失败或当前成员不存在时一律按无权限处理，尤其不得展示删除入口。
+        - 工作区管理区通过 `useSession` + `useActiveOrganization().data.members` 按 `session.user.id` 找到当前成员角色；不得复用 `listMembers(limit: 100)` 作为权限依据，避免成员超过 100 人时误判。该完整组织查询只接入工作区管理页，不改变全局轻量级 `useActiveWorkspace`。
+        - 新增 `components/workspace/update-organization-form.tsx`，使用 React Hook Form + `updateOrganizationSchema`，以当前 name/slug 初始化并调用 `authClient.organization.update({ organizationId, data: { name, slug } })`。重复 slug 映射到 `slug` 字段行内错误，`403` 及其他操作错误使用 toast；成功后 toast、重新获取工作区列表和完整组织数据并执行 `router.invalidate()`，使页面标题与头部切换器同步更新。
+        - 在 `routes/_app/workspace.tsx` 增加「当前工作区设置」卡片：owner/admin 可见编辑表单，member 不显示管理控件；表单切换工作区时按新工作区重置。
+        - 在 `workspace-forms.test.tsx` 与权限纯函数测试中覆盖：正确提交、slug 冲突、服务端 403、成功后刷新、切换工作区重置表单、owner/admin/member 与多角色权限矩阵。
+        - **验收**：`pnpm --filter @repo/web test` 通过；owner/admin 编辑后所有名称与 slug 展示即时一致，member 直接请求仍由服务端拒绝。
+    - **15D 前端危险操作与删除后收敛**
+      - **15.5 删除确认 Dialog 与缓存/Session 刷新（`apps/web`）**
+        - 新增 `components/workspace/delete-organization-dialog.tsx`，复用 `@repo/ui` Dialog、Input 与 destructive Button，仅 owner 可见；展示不可恢复警告及实际工作区名称/slug。React Hook Form 校验 `confirmationSlug`，仅当其与当前 slug 精确相等时启用删除按钮并调用 `authClient.organization.delete({ organizationId })`，提交期间禁止重复点击。
+        - 删除结束后清空 `optimisticActiveOrganizationId`、目标工作区相关 TanStack Query 缓存及邀请/通知缓存，重新获取 Session、工作区列表和完整组织数据并 `router.invalidate()`；仍存在剩余工作区时进入后端选定的回退工作区，无剩余工作区时由 `WorkspaceGate` 展示创建表单，禁止空白页、旧工作区数据闪现或无限激活请求。
+        - 成功时关闭 Dialog 并显示成功 toast；请求失败时仍执行上述 Session/列表对账，若目标工作区已消失则按删除成功收敛，否则保留 Dialog 和输入并显示错误 toast，以覆盖「原生删除成功但响应失败」的边界且避免重复删除。
+        - 在 `workspace-forms.test.tsx` 覆盖：member/admin 无删除入口、错误 slug 不发请求、正确 slug 只提交一次、成功后清理缓存并刷新、请求失败后仍对账、目标已消失时不误报失败、无剩余工作区进入创建流程。
+        - **验收**：`pnpm --filter @repo/web test` 通过；owner 删除当前工作区后界面与 Session 收敛到正确状态，不残留已删除工作区的数据查询。
+    - **15E 多角色联调与收尾**
+      - **15.6 多角色、跨租户与删除闭环验收**
+        - 准备同一工作区的 owner/admin/member 三个账号，分别验证：owner 与 admin 可编辑，member 无入口且直接更新返回 403；仅 owner 可删除，admin/member 直接删除均返回 403；非成员传入他人 `organizationId` 同样无法更新或删除。
+        - 使用两个账号占用相同 slug 验证全局冲突；保持当前 slug 更新名称成功；错误确认 slug 不产生网络请求。
+        - 准备「有剩余工作区」与「无剩余工作区」两种成员，删除后分别检查 Session、`lastActiveOrganizationId`、创建流程及项目/任务/评论/成员/邀请/通知/埋点清理；其他工作区数据保持不变，其他在线成员在下次 Session 或组织列表刷新后收敛（本阶段不要求实时推送）。
+        - 检查中英文、亮暗主题、移动端 Dialog 与表单可用性，`resources.test.ts` 语言键对齐保持通过。
+        - **验收**：权限矩阵、跨租户拒绝、硬删除范围与两种回退路径全部符合前置约定。
+      - **15.7 收尾自检**
+        - 依次运行 `pnpm test`、`pnpm typecheck`、`pnpm biome check --write .`、`pnpm build`。
+        - **验收**：四条命令全绿且零 Biome 报错。
+  - **阶段十五完成标准**：owner/admin 可安全编辑当前工作区名称与全局唯一 slug，仅 owner 可经完整 slug 确认后硬删除；服务端对 member、admin 越权删除及非成员跨租户请求均强制拒绝；删除后关联数据、所有受影响 Session 与 `lastActiveOrganizationId` 正确清理或回退，前端无旧缓存和空白页；新增文案中英双语对齐，全部测试、类型检查、规范与构建命令通过。
+
 - **修复任务：登录后自动创建并激活默认工作区**
   - **1. 后端新用户自动创建默认工作区（`apps/server`）**
     - 在 `apps/server/src/auth/auth.ts` 的 `databaseHooks.user.create.after` 中实现：

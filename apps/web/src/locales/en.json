@@ -270,6 +270,8 @@
     "retry": "Retry",
     "create": {
       "title": "Create workspace",
+      "description": "Create a workspace for your team, then invite members by email.",
+      "cancel": "Cancel",
       "name": "Name",
       "slug": "Slug",
       "slugHint": "Lowercase letters, numbers and hyphens, e.g. acme-team",
@@ -277,6 +279,33 @@
       "submitting": "Creating…",
       "failed": "Could not create the workspace. Try again.",
       "success": "Workspace created."
+    },
+    "edit": {
+      "title": "Workspace settings",
+      "description": "Change the name and slug of the active workspace.",
+      "trigger": "Edit workspace",
+      "cancel": "Cancel",
+      "submit": "Save changes",
+      "submitting": "Saving…",
+      "success": "Workspace updated.",
+      "failed": "Could not update the workspace. Try again.",
+      "slugTaken": "This slug is already in use."
+    },
+    "delete": {
+      "title": "Danger zone",
+      "description": "Delete this workspace and all of its data. This cannot be undone.",
+      "trigger": "Delete workspace",
+      "dialogTitle": "Delete workspace?",
+      "warning": "This permanently deletes {{name}} and all of its projects, tasks, comments, members and invitations. This cannot be undone.",
+      "confirmationLabel": "Workspace slug",
+      "confirmationHint": "Enter {{slug}} to confirm deletion.",
+      "formLabel": "Delete workspace confirmation",
+      "cancel": "Cancel",
+      "submit": "Permanently delete",
+      "submitting": "Deleting…",
+      "success": "Workspace deleted.",
+      "failed": "Could not delete the workspace. Try again.",
+      "mismatch": "The confirmation slug does not match."
     },
     "invite": {
       "title": "Invite member",

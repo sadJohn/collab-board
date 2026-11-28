@@ -122,7 +122,10 @@ export function WorkspaceGate({ children }: WorkspaceGateProps) {
   if (needsOrganization) {
     return (
       <div className="mx-auto w-full max-w-2xl">
-        <CreateOrganizationForm onCreated={refreshWorkspace} />
+        <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+          <h2 className="font-medium text-sm">{t("workspace.create.title")}</h2>
+          <CreateOrganizationForm onCreated={refreshWorkspace} />
+        </section>
       </div>
     );
   }

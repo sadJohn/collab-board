@@ -12,6 +12,7 @@ interface FormTextFieldProps<TFieldValues extends FieldValues> {
   placeholder?: string;
   description?: string;
   autoComplete?: string;
+  idPrefix?: string;
 }
 
 /**
@@ -27,10 +28,12 @@ export function FormTextField<TFieldValues extends FieldValues>({
   placeholder,
   description,
   autoComplete,
+  idPrefix,
 }: FormTextFieldProps<TFieldValues>) {
-  const id = String(name);
+  const id = idPrefix ? `${idPrefix}-${String(name)}` : String(name);
   const fieldError = form.formState.errors[name];
   const error = typeof fieldError?.message === "string" ? fieldError.message : undefined;
+  const describedBy = error ? `${id}-error` : description ? `${id}-description` : undefined;
 
   return (
     <FormField id={id} label={label} error={error} description={description}>
@@ -40,7 +43,7 @@ export function FormTextField<TFieldValues extends FieldValues>({
         placeholder={placeholder}
         autoComplete={autoComplete}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={describedBy}
         {...form.register(name)}
       />
     </FormField>

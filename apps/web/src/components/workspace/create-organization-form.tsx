@@ -8,9 +8,10 @@ import { authClient } from "@/lib/auth-client";
 
 interface CreateOrganizationFormProps {
   onCreated: () => Promise<void>;
+  onCancel?: () => void;
 }
 
-export function CreateOrganizationForm({ onCreated }: CreateOrganizationFormProps) {
+export function CreateOrganizationForm({ onCreated, onCancel }: CreateOrganizationFormProps) {
   const { t } = useTranslation();
   const form = useZodForm(createOrganizationSchema, {
     defaultValues: { name: "", slug: "" },
@@ -30,24 +31,38 @@ export function CreateOrganizationForm({ onCreated }: CreateOrganizationFormProp
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-      <h2 className="font-medium text-sm">{t("workspace.create.title")}</h2>
+    <form
+      aria-label={t("workspace.create.title")}
+      className="flex flex-col gap-4"
+      noValidate
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
+      <FormTextField
+        idPrefix="create-organization"
+        form={form}
+        label={t("workspace.create.name")}
+        name="name"
+      />
+      <FormTextField
+        description={t("workspace.create.slugHint")}
+        form={form}
+        idPrefix="create-organization"
+        label={t("workspace.create.slug")}
+        name="slug"
+      />
 
-      <form className="flex flex-col gap-4" noValidate onSubmit={form.handleSubmit(onSubmit)}>
-        <FormTextField form={form} label={t("workspace.create.name")} name="name" />
-        <FormTextField
-          description={t("workspace.create.slugHint")}
-          form={form}
-          label={t("workspace.create.slug")}
-          name="slug"
-        />
-
-        <Button className="w-fit" disabled={form.formState.isSubmitting} type="submit">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        {onCancel ? (
+          <Button onClick={onCancel} type="button" variant="outline">
+            {t("workspace.create.cancel")}
+          </Button>
+        ) : null}
+        <Button disabled={form.formState.isSubmitting} type="submit">
           {form.formState.isSubmitting
             ? t("workspace.create.submitting")
             : t("workspace.create.submit")}
         </Button>
-      </form>
-    </section>
+      </div>
+    </form>
   );
 }
