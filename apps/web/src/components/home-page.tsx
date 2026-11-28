@@ -12,7 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
-  ArrowRight,
   CheckCircle2,
   ChevronDown,
   CircleDashed,
@@ -177,22 +176,14 @@ export function DashboardPage() {
     },
   ];
 
-  if (!organizationId) {
-    return (
-      <div className="flex flex-col items-start gap-3 rounded-xl border bg-card p-6">
-        <p className="text-muted-foreground text-sm">{t("dashboard.noWorkspace")}</p>
-        <Button onClick={() => void navigate({ to: "/workspace" })}>
-          {t("dashboard.goWorkspace")}
-          <ArrowRight />
-        </Button>
-      </div>
-    );
-  }
-
+  // The workspace gate handles the no-workspace case (it renders the create
+  // form) and activates an existing workspace automatically. Until an active
+  // workspace resolves, show loading instead of a one-off "go to workspace"
+  // call to action that would disappear immediately.
   // isPending is true only when there is no cached dashboard yet, so switching
   // to a known workspace renders its cache instantly; a background refresh runs
   // once the switch commits (if the cache is stale).
-  if (dashboardQuery.isPending) {
+  if (!organizationId || dashboardQuery.isPending) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <Loader2 className="size-4 animate-spin" />

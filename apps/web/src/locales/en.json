@@ -30,8 +30,6 @@
     "openCommand": "Open command palette (⌘K)",
     "loading": "Loading dashboard…",
     "loadFailed": "Could not load the dashboard. Try again.",
-    "noWorkspace": "Select or create a workspace to see your dashboard.",
-    "goWorkspace": "Go to workspace",
     "stats": {
       "title": "My task overview",
       "assigned": "To do",

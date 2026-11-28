@@ -30,8 +30,6 @@
     "openCommand": "打开命令面板（⌘K）",
     "loading": "加载工作台…",
     "loadFailed": "工作台加载失败，请重试。",
-    "noWorkspace": "请先选择或创建一个工作区，再查看工作台。",
-    "goWorkspace": "前往工作区",
     "stats": {
       "title": "我的任务概览",
       "assigned": "待处理",

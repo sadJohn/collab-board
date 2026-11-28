@@ -1,4 +1,5 @@
 import { Button } from "@repo/ui";
+import { Loader2 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -38,6 +39,18 @@ export function useWorkspaceActivation() {
       !organizations.error,
   );
   const shouldActivate = canEvaluate && !activeOrganizationId && Boolean(firstOrganizationId);
+  // The create-form decision only needs already-loaded data. Ignoring refetch
+  // flags keeps the form stable when a window-focus refetch runs — otherwise
+  // the gate briefly falls back to children, which show "go to workspace".
+  const needsOrganization = Boolean(
+    sessionData &&
+      organizationData &&
+      !session.isPending &&
+      !organizations.isPending &&
+      !session.error &&
+      !organizations.error &&
+      organizationData.length === 0,
+  );
 
   useEffect(() => {
     if (!shouldActivate || !sessionId || !firstOrganizationId) {
@@ -102,7 +115,11 @@ export function useWorkspaceActivation() {
   }
 
   return {
-    needsOrganization: Boolean(canEvaluate && organizationData?.length === 0),
+    // Session and organization data decide which screen is correct. Until both
+    // have loaded for the first time, rendering children would briefly show
+    // states such as "go to workspace" before switching to the create form.
+    isResolving: session.isPending || organizations.isPending,
+    needsOrganization,
     activationError: visibleActivationError,
     isActivating,
     retryActivation,
@@ -116,8 +133,23 @@ interface WorkspaceGateProps {
 
 export function WorkspaceGate({ children }: WorkspaceGateProps) {
   const { t } = useTranslation();
-  const { needsOrganization, activationError, isActivating, retryActivation, refreshWorkspace } =
-    useWorkspaceActivation();
+  const {
+    isResolving,
+    needsOrganization,
+    activationError,
+    isActivating,
+    retryActivation,
+    refreshWorkspace,
+  } = useWorkspaceActivation();
+
+  if (isResolving) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground text-sm" role="status">
+        <Loader2 className="size-4 animate-spin" />
+        {t("workspace.loading")}
+      </div>
+    );
+  }
 
   if (needsOrganization) {
     return (

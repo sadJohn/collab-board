@@ -133,6 +133,61 @@ describe("workspace activation fallback", () => {
     expect(setActive).not.toHaveBeenCalled();
   });
 
+  it("keeps the create workspace flow while workspace data refetches", () => {
+    useSessionMock.mockReturnValue(sessionState(null, { isRefetching: true }));
+    useListOrganizationsMock.mockReturnValue(organizationsState([], { isRefetching: true }));
+
+    render(
+      <WorkspaceGate>
+        <p>Protected content</p>
+      </WorkspaceGate>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Create workspace" })).toBeTruthy();
+    expect(screen.queryByText("Protected content")).toBeNull();
+    expect(setActive).not.toHaveBeenCalled();
+  });
+
+  it("waits for workspace data before rendering protected content", () => {
+    useSessionMock.mockReturnValue(sessionState(null, { data: null, isPending: true }));
+    useListOrganizationsMock.mockReturnValue(
+      organizationsState([], { data: null, isPending: true }),
+    );
+
+    const { rerender } = render(
+      <WorkspaceGate>
+        <p>Protected content</p>
+      </WorkspaceGate>,
+    );
+
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.queryByText("Protected content")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Create workspace" })).toBeNull();
+
+    useSessionMock.mockReturnValue(sessionState());
+    useListOrganizationsMock.mockReturnValue(
+      organizationsState([], { data: null, isPending: true }),
+    );
+    rerender(
+      <WorkspaceGate>
+        <p>Protected content</p>
+      </WorkspaceGate>,
+    );
+
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.queryByText("Protected content")).toBeNull();
+
+    useListOrganizationsMock.mockReturnValue(organizationsState([]));
+    rerender(
+      <WorkspaceGate>
+        <p>Protected content</p>
+      </WorkspaceGate>,
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Create workspace" })).toBeTruthy();
+  });
+
   it("does not start a second activation when loading state changes during a request", async () => {
     useSessionMock.mockReturnValue(sessionState());
     useListOrganizationsMock.mockReturnValue(organizationsState());
