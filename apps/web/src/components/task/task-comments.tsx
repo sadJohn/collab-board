@@ -6,8 +6,9 @@ import { useTranslation } from "react-i18next";
 
 import { createComment, deleteComment, listComments } from "../../lib/api/comments";
 import { listMembers } from "../../lib/api/members";
-import { useActiveOrganization, useSession } from "../../lib/auth-client";
+import { useSession } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
 import { UserAvatar } from "../user-avatar";
 
 interface TaskCommentsProps {
@@ -18,7 +19,8 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const session = useSession();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const { data, isSwitching } = useActiveWorkspace();
+  const organizationId = data?.id ?? "";
   const [content, setContent] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +32,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
   const membersQuery = useQuery({
     queryKey: queryKeys.members.list(organizationId),
     queryFn: () => listMembers(organizationId),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !isSwitching,
     staleTime: MEMBERS_STALE_TIME_MS,
   });
 

@@ -262,6 +262,7 @@
     "active": "当前工作区",
     "switch": "切换",
     "activationFailed": "工作区激活失败，请重试。",
+    "switchFailed": "切换工作区失败，请重试。",
     "retry": "重试",
     "create": {
       "title": "创建工作区",

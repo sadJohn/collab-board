@@ -14,11 +14,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { authClient, useActiveOrganization, useListOrganizations } from "../lib/auth-client";
-import { queryClient as globalQueryClient } from "../lib/query-client";
+import { useListOrganizations } from "../lib/auth-client";
 import { queryKeys } from "../lib/query-keys";
-import { sessionQueryOptions } from "../lib/session";
 import { DEFAULT_TASK_LIST_SEARCH } from "../lib/task-search";
+import { useActiveWorkspace } from "../lib/use-active-workspace";
+import { useSwitchWorkspace } from "../lib/use-switch-workspace";
 import type { SupportedLanguage } from "../locales/i18n";
 import { useUiStore } from "../stores/ui-store";
 
@@ -52,7 +52,8 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
+  const { switchTo } = useSwitchWorkspace();
   const organizationId = activeOrganization.data?.id ?? "";
   const listOrganizations = useListOrganizations();
 
@@ -226,16 +227,7 @@ export function CommandPalette() {
               <CommandItem
                 key={org.id}
                 value={`org-${org.name}-${org.id}`}
-                onSelect={() =>
-                  closeAndRun(async () => {
-                    await authClient.organization.setActive({ organizationId: org.id });
-                    // Invalidate session so useListOrganizations / useActiveOrganization
-                    // refresh their stale-time caches and the app re-renders.
-                    await globalQueryClient.invalidateQueries({
-                      queryKey: sessionQueryOptions.queryKey,
-                    });
-                  })
-                }
+                onSelect={() => closeAndRun(() => void switchTo(org.id))}
               >
                 {org.name}
                 {isActive ? <CommandShortcut>{t("workspace.active")}</CommandShortcut> : null}

@@ -23,10 +23,10 @@ import { useTranslation } from "react-i18next";
 
 import { listMembers } from "../../lib/api/members";
 import { listTasks, moveTask } from "../../lib/api/tasks";
-import { useActiveOrganization } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
 import { type BoardDropTarget, planTaskMove, type TaskMovePlan } from "../../lib/task-board";
 import { tracker } from "../../lib/tracker";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
 import { useUiStore } from "../../stores/ui-store";
 import { TaskCard } from "../task/task-card";
 import { BoardColumn } from "./board-column";
@@ -50,7 +50,8 @@ interface KanbanBoardProps {
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const { data, isSwitching } = useActiveWorkspace();
+  const organizationId = data?.id ?? "";
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -72,13 +73,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         page: 1,
         pageSize: MAX_PAGE_SIZE,
       }),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !isSwitching,
   });
 
   const membersQuery = useQuery({
     queryKey: queryKeys.members.list(organizationId),
     queryFn: () => listMembers(organizationId),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !isSwitching,
     staleTime: MEMBERS_STALE_TIME_MS,
   });
 

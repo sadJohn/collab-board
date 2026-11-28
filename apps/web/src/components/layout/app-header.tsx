@@ -10,14 +10,12 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  authClient,
-  useActiveOrganization,
-  useListOrganizations,
-  useSession,
-} from "../../lib/auth-client";
+import { authClient, useListOrganizations, useSession } from "../../lib/auth-client";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
+import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
 import { useUiStore } from "../../stores/ui-store";
 import { LanguageSwitcher } from "../language-switcher";
 import { ThemeToggle } from "../theme-toggle";
@@ -30,27 +28,35 @@ export function AppHeader() {
   const router = useRouter();
   const session = useSession();
   const organizations = useListOrganizations();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
+  const { switchTo } = useSwitchWorkspace();
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const workspaceSwitchError = useUiStore((state) => state.workspaceSwitchError);
+  const clearWorkspaceSwitchError = useUiStore((state) => state.setWorkspaceSwitchError);
+  const clearOptimistic = useUiStore((state) => state.setOptimisticActiveOrganizationId);
 
   const activeOrganizationId = activeOrganization.data?.id ?? "";
   const items = organizations.data ?? [];
   const user = session.data?.user;
 
-  async function handleOrganizationChange(organizationId: string) {
-    if (!organizationId || organizationId === activeOrganizationId) {
+  // Auto-dismiss the switch error after a few seconds.
+  useEffect(() => {
+    if (!workspaceSwitchError) {
       return;
     }
+    const id = window.setTimeout(() => clearWorkspaceSwitchError(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [workspaceSwitchError, clearWorkspaceSwitchError]);
 
-    await authClient.organization.setActive({ organizationId });
-    await authClient.getSession();
-    // Cached lists are scoped per organization, so drop everything.
-    queryClient.clear();
-    await router.invalidate();
+  function handleOrganizationChange(organizationId: string) {
+    // Optimistic: the UI switches instantly; the commit runs in the background.
+    void switchTo(organizationId);
   }
 
   async function handleSignOut() {
+    clearOptimistic(null);
+    clearWorkspaceSwitchError(null);
     await authClient.signOut();
     queryClient.clear();
     // The layout guard now sees no session and redirects to /login.
@@ -92,6 +98,12 @@ export function AppHeader() {
               </option>
             ))}
           </select>
+
+          {workspaceSwitchError ? (
+            <span className="shrink-0 text-destructive text-xs" role="alert">
+              {workspaceSwitchError}
+            </span>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">

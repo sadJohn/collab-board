@@ -11,10 +11,11 @@ import { useProjectRealtime } from "../../../../hooks/use-project-realtime";
 import { useProjectRoom } from "../../../../hooks/use-project-room";
 import { getProject } from "../../../../lib/api/projects";
 import { ApiError } from "../../../../lib/api-client";
-import { useActiveOrganization, useSession } from "../../../../lib/auth-client";
+import { useSession } from "../../../../lib/auth-client";
 import { queryKeys } from "../../../../lib/query-keys";
 import { DEFAULT_TASK_LIST_SEARCH } from "../../../../lib/task-search";
 import { tracker } from "../../../../lib/tracker";
+import { useActiveWorkspace } from "../../../../lib/use-active-workspace";
 import { useUiStore } from "../../../../stores/ui-store";
 
 /**
@@ -39,7 +40,7 @@ function ProjectLayout() {
   const { projectId } = Route.useParams();
   const { task } = Route.useSearch();
   const { t } = useTranslation();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
   const organizationId = activeOrganization.data?.id;
   const currentUserId = useSession().data?.user.id;
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
@@ -83,7 +84,7 @@ function ProjectLayout() {
   const projectQuery = useQuery({
     queryKey: queryKeys.projects.detail(organizationId ?? "", projectId),
     queryFn: () => getProject(projectId),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
   });
   const project = projectQuery.data;
 

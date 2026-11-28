@@ -10,15 +10,15 @@ import {
   useMarkNotificationRead,
   useNotifications,
 } from "../../hooks/use-notifications";
-import { authClient, useActiveOrganization } from "../../lib/auth-client";
+import { authClient, useListOrganizations } from "../../lib/auth-client";
 import type {
   AppNotification,
   BusinessNotification,
   WorkspaceInvitationNotification,
 } from "../../lib/notifications";
-import { queryClient as globalQueryClient } from "../../lib/query-client";
 import { queryKeys } from "../../lib/query-keys";
-import { sessionQueryOptions } from "../../lib/session";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
+import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
 
 /**
  * Header inbox. Every notification type renders through its own branch, so new
@@ -29,7 +29,9 @@ export function NotificationCenter() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const navigate = useNavigate();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
+  const { switchTo } = useSwitchWorkspace();
+  const listOrganizations = useListOrganizations();
   const { notifications, unreadCount, businessUnread, isLoading, isError } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -59,6 +61,9 @@ export function NotificationCenter() {
     const organizationId =
       data?.invitation.organizationId ?? notification.invitation.organizationId;
     await authClient.organization.setActive({ organizationId });
+    // The just-joined org may not be in the cached list yet; refresh it so
+    // useActiveWorkspace can resolve its name instead of falling back to blank.
+    await listOrganizations.refetch();
     queryClient.clear();
     await router.invalidate();
     await navigate({ to: "/home" });
@@ -96,12 +101,13 @@ export function NotificationCenter() {
 
     const activeOrg = activeOrganization.data?.id;
     if (activeOrg && activeOrg !== organizationId) {
-      const { error } = await authClient.organization.setActive({ organizationId });
-      if (error) {
-        setActionError(error.message || t("notifications.business.switchFailed"));
+      // Optimistic switch for instant feedback; await the commit before
+      // navigating so the board's API calls hit the right workspace.
+      const { ok, error } = await switchTo(organizationId);
+      if (!ok) {
+        setActionError(error || t("notifications.business.switchFailed"));
         return;
       }
-      await globalQueryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey });
     }
 
     await navigate({

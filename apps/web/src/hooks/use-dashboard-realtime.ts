@@ -1,10 +1,9 @@
 import { SOCKET_EVENTS } from "@repo/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-
-import { useActiveOrganization } from "../lib/auth-client";
 import { queryKeys } from "../lib/query-keys";
 import { socket } from "../lib/socket";
+import { useActiveWorkspace } from "../lib/use-active-workspace";
 
 /** Task/comment broadcasts that can change any dashboard aggregate. */
 const DASHBOARD_EVENTS = [
@@ -25,7 +24,7 @@ const DASHBOARD_EVENTS = [
  */
 export function useDashboardRealtime(projectIds: string[]): void {
   const queryClient = useQueryClient();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const organizationId = useActiveWorkspace().data?.id ?? "";
   // A stable dependency: a new array identity on every render must not re-join.
   const projectIdsKey = projectIds.join("|");
 

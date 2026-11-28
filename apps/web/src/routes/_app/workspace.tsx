@@ -6,7 +6,9 @@ import { useTranslation } from "react-i18next";
 import { CreateOrganizationForm } from "../../components/workspace/create-organization-form";
 import { InviteMemberForm } from "../../components/workspace/invite-member-form";
 import { PendingInvitations } from "../../components/workspace/pending-invitations";
-import { authClient, useActiveOrganization, useListOrganizations } from "../../lib/auth-client";
+import { useListOrganizations } from "../../lib/auth-client";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
+import { useSwitchWorkspace } from "../../lib/use-switch-workspace";
 
 export const Route = createFileRoute("/_app/workspace")({
   component: WorkspacePage,
@@ -17,21 +19,18 @@ function WorkspacePage() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const organizations = useListOrganizations();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
+  const { switchTo } = useSwitchWorkspace();
 
   const activeOrganizationId = activeOrganization.data?.id;
   const items = organizations.data ?? [];
 
   async function refreshSession() {
-    await authClient.getSession();
-    // Everything cached is scoped per organization.
+    // Used after creating a workspace: better-auth refreshes the session
+    // automatically, so no manual getSession is needed. Everything cached is
+    // scoped per organization, so drop it all and let routes refetch.
     queryClient.clear();
     await router.invalidate();
-  }
-
-  async function activate(organizationId: string) {
-    await authClient.organization.setActive({ organizationId });
-    await refreshSession();
   }
 
   return (
@@ -68,7 +67,7 @@ function WorkspacePage() {
               {organization.id === activeOrganizationId ? (
                 <span className="shrink-0 text-primary text-xs">{t("workspace.active")}</span>
               ) : (
-                <Button onClick={() => void activate(organization.id)} size="sm" variant="outline">
+                <Button onClick={() => void switchTo(organization.id)} size="sm" variant="outline">
                   {t("workspace.switch")}
                 </Button>
               )}

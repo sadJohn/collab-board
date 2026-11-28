@@ -12,10 +12,11 @@ import {
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
-import { useActiveOrganization, useSession } from "../lib/auth-client";
+import { useSession } from "../lib/auth-client";
 import { queryKeys } from "../lib/query-keys";
 import { planRealtimeEvent, type RealtimeCachePlan } from "../lib/realtime-plan";
 import { socket } from "../lib/socket";
+import { useActiveWorkspace } from "../lib/use-active-workspace";
 import { useUiStore } from "../stores/ui-store";
 
 /** Applies a validated realtime plan to the TanStack Query cache. */
@@ -84,7 +85,7 @@ function applyPlan(
  */
 export function useProjectRealtime(projectId: string): void {
   const queryClient = useQueryClient();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const organizationId = useActiveWorkspace().data?.id ?? "";
   const currentUserId = useSession().data?.user.id;
   const connectedBefore = useRef(false);
 

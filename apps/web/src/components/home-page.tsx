@@ -30,9 +30,10 @@ import { useTranslation } from "react-i18next";
 import { useDashboardRealtime } from "../hooks/use-dashboard-realtime";
 import { useNotifications } from "../hooks/use-notifications";
 import { getDashboard } from "../lib/api/dashboard";
-import { useActiveOrganization, useSession } from "../lib/auth-client";
+import { useSession } from "../lib/auth-client";
 import type { BusinessNotification } from "../lib/notifications";
 import { queryKeys } from "../lib/query-keys";
+import { useActiveWorkspace } from "../lib/use-active-workspace";
 import { useUiStore } from "../stores/ui-store";
 import { DashboardCharts } from "./dashboard/dashboard-charts";
 import { CreateProjectDialog } from "./project/create-project-dialog";
@@ -89,7 +90,10 @@ export function DashboardPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const session = useSession();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
+  // Key on the optimistic id so a switch instantly shows the target workspace's
+  // cached dashboard; the fetch is gated on !isSwitching so it never fires
+  // against the old cookie. The displayed name (below) reads the same `data`.
   const organizationId = activeOrganization.data?.id;
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
   const setCommandPaletteOpen = useUiStore((state) => state.setCommandPaletteOpen);
@@ -98,7 +102,7 @@ export function DashboardPage() {
   const dashboardQuery = useQuery({
     queryKey: queryKeys.dashboard(organizationId ?? ""),
     queryFn: getDashboard,
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
   });
 
   const { notifications } = useNotifications();
@@ -185,6 +189,9 @@ export function DashboardPage() {
     );
   }
 
+  // isPending is true only when there is no cached dashboard yet, so switching
+  // to a known workspace renders its cache instantly; a background refresh runs
+  // once the switch commits (if the cache is stale).
   if (dashboardQuery.isPending) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">

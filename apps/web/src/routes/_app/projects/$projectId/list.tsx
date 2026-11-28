@@ -1,6 +1,6 @@
 import { TASK_STATUSES, type TaskDto, type TaskStatus } from "@repo/shared";
 import { Button, Input } from "@repo/ui";
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   createColumnHelper,
@@ -14,7 +14,6 @@ import { useTranslation } from "react-i18next";
 
 import { listMembers } from "../../../../lib/api/members";
 import { deleteTask, listTasks, updateTask } from "../../../../lib/api/tasks";
-import { useActiveOrganization } from "../../../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../../../lib/query-keys";
 import {
   type BatchSummary,
@@ -24,6 +23,7 @@ import {
   taskListSearchSchema,
   toTaskListParams,
 } from "../../../../lib/task-search";
+import { useActiveWorkspace } from "../../../../lib/use-active-workspace";
 import { useUiStore } from "../../../../stores/ui-store";
 
 export const Route = createFileRoute("/_app/projects/$projectId/list")({
@@ -42,7 +42,7 @@ function ProjectListPage() {
   const navigate = Route.useNavigate();
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
   const organizationId = activeOrganization.data?.id ?? "";
   const setActiveTaskId = useUiStore((state) => state.setActiveTaskId);
 
@@ -106,14 +106,15 @@ function ProjectListPage() {
       pageSize: search.pageSize,
     }),
     queryFn: () => listTasks(projectId, toTaskListParams(search)),
-    enabled: Boolean(organizationId),
-    placeholderData: keepPreviousData,
+    // No keepPreviousData: retaining the last query's data across a key change
+    // would flash the previous workspace's tasks under the new one on switch.
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
   });
 
   const membersQuery = useQuery({
     queryKey: queryKeys.members.list(organizationId),
     queryFn: () => listMembers(organizationId),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
     staleTime: MEMBERS_STALE_TIME_MS,
   });
 

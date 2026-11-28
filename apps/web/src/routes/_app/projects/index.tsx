@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 
 import { CreateProjectDialog } from "../../../components/project/create-project-dialog";
 import { listProjects } from "../../../lib/api/projects";
-import { useActiveOrganization } from "../../../lib/auth-client";
 import { queryKeys } from "../../../lib/query-keys";
+import { useActiveWorkspace } from "../../../lib/use-active-workspace";
 
 export const Route = createFileRoute("/_app/projects/")({
   component: ProjectsPage,
@@ -15,14 +15,14 @@ export const Route = createFileRoute("/_app/projects/")({
 
 function ProjectsPage() {
   const { t } = useTranslation();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
   const organizationId = activeOrganization.data?.id;
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const projectsQuery = useQuery({
     queryKey: queryKeys.projects.all(organizationId ?? ""),
     queryFn: listProjects,
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
   });
 
   const projects = projectsQuery.data ?? [];

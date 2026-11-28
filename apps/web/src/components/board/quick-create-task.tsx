@@ -5,8 +5,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { createTask, moveTask } from "../../lib/api/tasks";
-import { useActiveOrganization } from "../../lib/auth-client";
 import { queryKeys } from "../../lib/query-keys";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
 import { useZodForm } from "../form/use-zod-form";
 
 interface QuickCreateTaskProps {
@@ -22,7 +22,7 @@ const titleSchema = createTaskSchema.pick({ title: true });
 export function QuickCreateTask({ projectId, status, headTaskId, onClose }: QuickCreateTaskProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const organizationId = useActiveWorkspace().data?.id ?? "";
   const [formError, setFormError] = useState<string | null>(null);
   const form = useZodForm(titleSchema, { defaultValues: { title: "" } });
 

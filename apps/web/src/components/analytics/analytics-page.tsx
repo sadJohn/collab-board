@@ -23,18 +23,18 @@ import {
 } from "recharts";
 
 import { getAnalytics } from "../../lib/api/analytics";
-import { useActiveOrganization } from "../../lib/auth-client";
 import { queryKeys } from "../../lib/query-keys";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
 
 export function AnalyticsPage() {
   const { t, i18n } = useTranslation();
-  const activeOrganization = useActiveOrganization();
+  const activeOrganization = useActiveWorkspace();
   const organizationId = activeOrganization.data?.id;
 
   const query = useQuery({
     queryKey: queryKeys.analytics(organizationId ?? ""),
     queryFn: () => getAnalytics(organizationId as string),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !activeOrganization.isSwitching,
   });
 
   const dayFormatter = useMemo(

@@ -15,8 +15,8 @@ import type { z } from "zod";
 
 import { listMembers } from "../../lib/api/members";
 import { updateTask } from "../../lib/api/tasks";
-import { useActiveOrganization } from "../../lib/auth-client";
 import { MEMBERS_STALE_TIME_MS, queryKeys } from "../../lib/query-keys";
+import { useActiveWorkspace } from "../../lib/use-active-workspace";
 import { FormTextField } from "../form/form-text-field";
 import { FormTextareaField } from "../form/form-textarea-field";
 import { UserAvatar } from "../user-avatar";
@@ -43,13 +43,14 @@ interface TaskDetailFormProps {
 export function TaskDetailForm({ task }: TaskDetailFormProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const organizationId = useActiveOrganization().data?.id ?? "";
+  const { data, isSwitching } = useActiveWorkspace();
+  const organizationId = data?.id ?? "";
   const [formError, setFormError] = useState<string | null>(null);
 
   const membersQuery = useQuery({
     queryKey: queryKeys.members.list(organizationId),
     queryFn: () => listMembers(organizationId),
-    enabled: Boolean(organizationId),
+    enabled: Boolean(organizationId) && !isSwitching,
     staleTime: MEMBERS_STALE_TIME_MS,
   });
 

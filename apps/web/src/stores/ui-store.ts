@@ -30,6 +30,17 @@ interface UiState {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
+  /**
+   * Optimistically selected workspace id while a switch is in flight. When set,
+   * `useActiveWorkspace` prefers this over the session so the UI renders the new
+   * workspace instantly; it is cleared once the session catches up (success) or
+   * reverted on failure. Transient — never persisted.
+   */
+  optimisticActiveOrganizationId: string | null;
+  setOptimisticActiveOrganizationId: (organizationId: string | null) => void;
+  /** Error surfaced when the optimistic workspace switch fails to commit. */
+  workspaceSwitchError: string | null;
+  setWorkspaceSwitchError: (message: string | null) => void;
 }
 
 function resolveInitialLanguage(): SupportedLanguage {
@@ -84,6 +95,14 @@ export const useUiStore = create<UiState>()(
           }
           return { commandPaletteOpen: next };
         });
+      },
+      optimisticActiveOrganizationId: null,
+      setOptimisticActiveOrganizationId: (optimisticActiveOrganizationId) => {
+        set({ optimisticActiveOrganizationId });
+      },
+      workspaceSwitchError: null,
+      setWorkspaceSwitchError: (workspaceSwitchError) => {
+        set({ workspaceSwitchError });
       },
     }),
     {

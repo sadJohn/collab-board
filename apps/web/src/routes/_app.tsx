@@ -71,6 +71,9 @@ function AppLayout() {
 
         <main className="min-w-0 flex-1">
           <EmailVerificationBanner />
+          {/* Pages key their queries on the optimistic workspace id, so a switch
+              instantly shows the target workspace's cached data (cache-first);
+              each page shows its own loading state only when nothing is cached. */}
           <WorkspaceGate>
             <Outlet />
           </WorkspaceGate>
